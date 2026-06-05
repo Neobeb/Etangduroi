@@ -3,7 +3,7 @@ const http = require("http");
 const path = require("path");
 
 const port = Number(process.env.PORT || 10000);
-const publicDir = path.join(__dirname, "simulateur_v5");
+const publicDir = path.resolve(__dirname, "simulateur_v5");
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -17,9 +17,10 @@ const mimeTypes = {
   ".ico": "image/x-icon",
 };
 
-function sendFile(res, filePath) {
+function sendFile(req, res, filePath) {
   fs.readFile(filePath, (error, data) => {
     if (error) {
+      console.error(`[404] ${req.url} -> ${filePath} (${error.code})`);
       res.writeHead(error.code === "ENOENT" ? 404 : 500);
       res.end(error.code === "ENOENT" ? "Not found" : "Server error");
       return;
@@ -37,17 +38,33 @@ const server = http.createServer((req, res) => {
   const normalizedPath = path.normalize(requestPath).replace(/^[/\\]+/, "");
   const relativePath = normalizedPath === "." || normalizedPath === "" ? "index.html" : normalizedPath;
   const filePath = path.resolve(publicDir, relativePath);
-  const publicRoot = path.resolve(publicDir);
 
-  if (filePath !== publicRoot && !filePath.startsWith(`${publicRoot}${path.sep}`)) {
+  if (filePath !== publicDir && !filePath.startsWith(`${publicDir}${path.sep}`)) {
     res.writeHead(403);
     res.end("Forbidden");
     return;
   }
 
-  sendFile(res, filePath);
+  fs.stat(filePath, (error, stats) => {
+    if (!error && stats.isDirectory()) {
+      sendFile(req, res, path.join(filePath, "index.html"));
+      return;
+    }
+
+    if (error || !stats.isFile()) {
+      sendFile(req, res, path.join(publicDir, "index.html"));
+      return;
+    }
+
+    sendFile(req, res, filePath);
+  });
 });
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`Serving ${publicDir} on port ${port}`);
+  console.log(`Current directory: ${process.cwd()}`);
+  console.log(`Static directory exists: ${fs.existsSync(publicDir)}`);
+  if (fs.existsSync(publicDir)) {
+    console.log(`Static files: ${fs.readdirSync(publicDir).join(", ")}`);
+  }
 });
