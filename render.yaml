@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: etang-du-roi-simulateur
+    runtime: static
+    buildCommand: "true"
+    staticPublishPath: ./simulateur_v5
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
