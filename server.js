@@ -258,11 +258,19 @@ function chooseHideIndex(game, player) {
 }
 
 function chooseTakeIndex(game, player) {
+  const visibleScores = game.offer
+    .map((card, index) => {
+      const known = index !== game.hiddenIndex || game.hiddenBy === player.id;
+      return known ? cardValue(game, player, card) : null;
+    })
+    .filter(Number.isFinite);
+  const bestVisibleScore = visibleScores.length ? Math.max(...visibleScores) : -Infinity;
+
   return bestIndex(game.offer.map((card, index) => {
     const known = index !== game.hiddenIndex || game.hiddenBy === player.id;
     return {
       index,
-      score: known ? cardValue(game, player, card) : hiddenCardValue(game, player),
+      score: known ? cardValue(game, player, card) : hiddenCardValue(game, player, bestVisibleScore),
     };
   }));
 }
@@ -298,7 +306,7 @@ function cardValue(game, player, card) {
   return bestPlacement(game, player, card).score;
 }
 
-function hiddenCardValue(game, player) {
+function hiddenCardValue(game, player, bestVisibleScore) {
   const unknown = [...game.deck];
   if (game.hiddenIndex >= 0 && game.offer[game.hiddenIndex]) unknown.push(game.offer[game.hiddenIndex]);
   const values = unknown
@@ -306,10 +314,18 @@ function hiddenCardValue(game, player) {
     .filter(Number.isFinite)
     .sort((a, b) => b - a);
   if (!values.length) return 0;
-  const bestSlice = values.slice(0, Math.max(1, Math.ceil(values.length * 0.18)));
+  const bestSlice = values.slice(0, Math.max(1, Math.ceil(values.length * 0.12)));
   const bestAverage = bestSlice.reduce((sum, value) => sum + value, 0) / bestSlice.length;
   const globalAverage = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return bestAverage * 0.65 + globalAverage * 0.35 - 1.5;
+  const hasVisibleOption = Number.isFinite(bestVisibleScore);
+  const visibleIsWeak = hasVisibleOption && bestVisibleScore <= globalAverage + 1;
+  const upsideWeight = visibleIsWeak ? 0.32 : 0.18;
+  let riskPenalty = 4.5 + Math.min(3.5, visibleCards(player).length * 0.35);
+  if (!hasVisibleOption) riskPenalty -= 2.5;
+  else if (bestVisibleScore >= bestAverage - 1) riskPenalty += 3;
+  else if (bestVisibleScore >= globalAverage + 5) riskPenalty += 1.5;
+  else if (visibleIsWeak) riskPenalty -= 1;
+  return bestAverage * upsideWeight + globalAverage * (1 - upsideWeight) - riskPenalty;
 }
 
 function visibleCards(player) {
