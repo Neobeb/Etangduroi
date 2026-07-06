@@ -188,13 +188,14 @@
     assertTurn(game, playerId, "pick");
     if (index < 0 || index >= game.offer.length) throw new Error("Carte invalide.");
     const player = currentPicker(game);
+    const wasHidden = game.hiddenIndex === index;
     const card = game.offer[index];
     game.offer.splice(index, 1);
     if (game.hiddenIndex === index) game.hiddenIndex = -1;
     if (game.hiddenIndex > index) game.hiddenIndex--;
     game.pendingPlacement = { playerId, card };
     game.phase = "place";
-    addLog(game, `${player.name} prend ${card.name}.`);
+    addLog(game, `${player.name} prend ${wasHidden ? "la carte cachee" : card.name}.`);
   }
 
   function placeCard(game, playerId, x, y) {
