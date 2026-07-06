@@ -48,16 +48,19 @@
         <div class="button-row">
           <button id="copyLink" class="secondary">Copier le lien</button>
           <button id="leaveRoom" class="secondary">Changer de joueur</button>
-          <select id="botProfile" class="bot-select" aria-label="Profil IA">
-            <option value="simple">IA simple</option>
-            <option value="opportuniste">IA opportuniste</option>
-            <option value="oiseaux">IA oiseaux</option>
-            <option value="prudente">IA prudente</option>
-          </select>
           <button id="addBot" class="secondary">Ajouter IA</button>
           <button id="startGame">Lancer</button>
         </div>
       </section>
+
+      <details class="panel scoring-panel hidden" id="scoringPanel">
+        <summary>Scoring</summary>
+        <div class="scoring-toolbar">
+          <button id="saveScoring" class="secondary">Enregistrer</button>
+          <span id="scoringStatus" class="save-status"></span>
+        </div>
+        <div id="scoringEditor" class="scoring-editor"></div>
+      </details>
 
       <section class="table-grid">
         <section class="panel focus-panel">

@@ -14,8 +14,11 @@ const els = {
   playersLine: document.querySelector("#playersLine"),
   copyLink: document.querySelector("#copyLink"),
   leaveRoom: document.querySelector("#leaveRoom"),
-  botProfile: document.querySelector("#botProfile"),
   addBot: document.querySelector("#addBot"),
+  scoringPanel: document.querySelector("#scoringPanel"),
+  scoringEditor: document.querySelector("#scoringEditor"),
+  saveScoring: document.querySelector("#saveScoring"),
+  scoringStatus: document.querySelector("#scoringStatus"),
   startGame: document.querySelector("#startGame"),
   phaseLine: document.querySelector("#phaseLine"),
   offer: document.querySelector("#offer"),
@@ -66,6 +69,7 @@ els.startGame.addEventListener("click", () => startGame());
 els.copyLink.addEventListener("click", () => copyLink());
 els.leaveRoom.addEventListener("click", () => returnToEntry());
 els.addBot.addEventListener("click", () => addBot());
+els.saveScoring.addEventListener("click", () => saveScoring());
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -183,7 +187,7 @@ async function addBot() {
     els.addBot.disabled = true;
     const payload = await request(`/api/rooms/${app.roomCode}/bots`, {
       method: "POST",
-      body: JSON.stringify({ playerId: app.playerId, profile: els.botProfile.value }),
+      body: JSON.stringify({ playerId: app.playerId }),
     });
     app.state = payload.state;
     render();
@@ -287,6 +291,7 @@ function render() {
   els.roomPill.textContent = `Salon ${state.code}`;
   els.roomTitle.textContent = `Salon ${state.code}`;
   renderPlayers(state);
+  renderScoring(state);
   renderFocus(state);
   renderBoards(state);
   renderLog(state);
@@ -301,7 +306,76 @@ function renderPlayers(state) {
   els.startGame.disabled = state.hostId !== app.playerId || Boolean(state.game) || state.players.length < 2;
   const canAddBot = state.hostId === app.playerId && !state.game && state.players.length < 4;
   els.addBot.disabled = !canAddBot;
-  els.botProfile.disabled = !canAddBot;
+}
+
+function renderScoring(state) {
+  const canEdit = state.hostId === app.playerId && !state.game;
+  els.scoringPanel.classList.toggle("hidden", !canEdit);
+  if (!canEdit) return;
+  const cards = state.cardCatalog || [];
+  els.scoringEditor.innerHTML = `
+    <div class="score-row score-head">
+      <span>Carte</span>
+      <span>Base</span>
+      <span>Valeur</span>
+      <span>Seuil</span>
+      <span>Malus</span>
+      <span>Serie</span>
+    </div>
+    ${cards.map(card => scoringRow(card)).join("")}
+  `;
+}
+
+function scoringRow(card) {
+  const serie = card.bardeScores?.length ? card.bardeScores.join(",") : card.birdScores?.length ? card.birdScores.join(",") : "";
+  const serieField = card.bardeScores?.length ? "bardeScores" : card.birdScores?.length ? "birdScores" : "";
+  return `
+    <div class="score-row" data-card-row="${escapeHtml(card.id)}">
+      <strong>${escapeHtml(card.name)}</strong>
+      ${scoreInput(card, "base", card.base)}
+      ${scoreInput(card, "value", card.value)}
+      ${scoreInput(card, "threshold", card.threshold)}
+      ${scoreInput(card, "negValue", card.negValue)}
+      ${serieField ? `<input class="score-input" data-card="${escapeHtml(card.id)}" data-field="${serieField}" value="${escapeHtml(serie)}">` : "<span></span>"}
+    </div>
+  `;
+}
+
+function scoreInput(card, field, value) {
+  return `<input class="score-input" type="number" step="1" data-card="${escapeHtml(card.id)}" data-field="${field}" value="${Number(value || 0)}">`;
+}
+
+async function saveScoring() {
+  try {
+    els.saveScoring.disabled = true;
+    els.scoringStatus.textContent = "Enregistrement";
+    const payload = await request(`/api/rooms/${app.roomCode}/scoring`, {
+      method: "POST",
+      body: JSON.stringify({ playerId: app.playerId, overrides: collectScoringOverrides() }),
+    });
+    app.state = payload.state;
+    render();
+    els.scoringStatus.textContent = "Enregistre";
+  } catch (error) {
+    els.scoringStatus.textContent = error.message || "Erreur";
+  } finally {
+    els.saveScoring.disabled = false;
+  }
+}
+
+function collectScoringOverrides() {
+  const overrides = {};
+  els.scoringEditor.querySelectorAll(".score-input[data-card][data-field]").forEach(input => {
+    const id = input.dataset.card;
+    const field = input.dataset.field;
+    if (!overrides[id]) overrides[id] = { id };
+    if (field === "bardeScores" || field === "birdScores") {
+      overrides[id][field] = input.value.split(",").map(item => Number(item.trim())).filter(Number.isFinite);
+    } else {
+      overrides[id][field] = Number(input.value || 0);
+    }
+  });
+  return overrides;
 }
 
 function renderFocus(state) {
@@ -334,8 +408,8 @@ function renderFocus(state) {
     const owner = game.players.find(player => player.id === game.pendingPlacement?.playerId);
     els.phaseLine.textContent = owner?.id === app.playerId ? "Posez la carte" : `${owner?.name || "Un joueur"} pose sa carte`;
     if (game.pendingPlacement?.card) {
-      const tile = cardTile(game.pendingPlacement.card, "", null, "pending-card");
-      els.pending.append(tile);
+      const tile = cardTile(game.pendingPlacement.card, "", null, "selected-card");
+      els.offer.append(tile);
     }
   }
 }

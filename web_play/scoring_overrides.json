@@ -1,0 +1,292 @@
+[
+  {
+    "id": "roseaux",
+    "name": "Roseaux fortifies",
+    "base": 0,
+    "value": 4,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "coffre",
+    "name": "Coffre",
+    "base": 0,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "moulin",
+    "name": "Moulin",
+    "base": 2,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "barde",
+    "name": "Barde",
+    "base": 0,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [
+      10,
+      6,
+      3,
+      1,
+      0
+    ],
+    "birdScores": []
+  },
+  {
+    "id": "chevalier",
+    "name": "Chevalier",
+    "base": 2,
+    "value": 5,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "carpographe",
+    "name": "Carpographe",
+    "base": 3,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "prince",
+    "name": "Prince",
+    "base": 4,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "princesse",
+    "name": "Princesse",
+    "base": 4,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "heron",
+    "name": "Heron",
+    "base": 6,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "tresor",
+    "name": "Carte au tresor",
+    "base": 3,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "paysan",
+    "name": "Paysan",
+    "base": 0,
+    "value": 4,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "algues",
+    "name": "Algues",
+    "base": 0,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "roi",
+    "name": "Roi",
+    "base": 2,
+    "value": 2,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "donjon",
+    "name": "Donjon",
+    "base": 3,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "temple",
+    "name": "Temple",
+    "base": 0,
+    "value": 15,
+    "threshold": 5,
+    "negValue": 1,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "moine",
+    "name": "Moine",
+    "base": 0,
+    "value": 15,
+    "threshold": 2,
+    "negValue": 1,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "revolutionnaire",
+    "name": "Revolutionnaire",
+    "base": 0,
+    "value": 15,
+    "threshold": 5,
+    "negValue": 1,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "capitaine",
+    "name": "Capitaine",
+    "base": 2,
+    "value": 6,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "grange",
+    "name": "Grange",
+    "base": 2,
+    "value": 2,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "bouffon",
+    "name": "Bouffon",
+    "base": 0,
+    "value": 20,
+    "threshold": 3,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "antiquaire",
+    "name": "Antiquaire",
+    "base": 0,
+    "value": 4,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "magicien",
+    "name": "Magicien",
+    "base": 0,
+    "value": 15,
+    "threshold": 2,
+    "negValue": 1,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "architecte",
+    "name": "Architecte",
+    "base": 2,
+    "value": 2,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "dame_lac",
+    "name": "Dame du lac",
+    "base": 2,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "nenuphar",
+    "name": "Nenuphar",
+    "base": 0,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "grand_duc",
+    "name": "Grand Duc",
+    "base": 0,
+    "value": 0,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": [
+      10,
+      5,
+      0
+    ]
+  },
+  {
+    "id": "forum",
+    "name": "Forum",
+    "base": 4,
+    "value": 5,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  },
+  {
+    "id": "pont_levis",
+    "name": "Pont-levis",
+    "base": 3,
+    "value": 3,
+    "threshold": 0,
+    "negValue": 0,
+    "bardeScores": [],
+    "birdScores": []
+  }
+]

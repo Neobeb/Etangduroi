@@ -20,7 +20,7 @@
     { id: "roseaux", name: "Roseaux fortifies", qty: 5, type: "Batiment", base: 0, mode: "cornerSet", value: 4, text: "+4 par Roseaux fortifies dans un coin.", asset: "roseaux.png" },
     { id: "coffre", name: "Coffre", qty: 2, type: "Objet", base: 0, mode: "kingdom", pos: ["Objet"], value: 3, text: "+3 par Objet dans le royaume.", asset: "coffre.png" },
     { id: "moulin", name: "Moulin", qty: 1, type: "Batiment", base: 2, mode: "kingdom", pos: ["Paysan", "Grange"], value: 3, text: "+3 par Paysan et Grange.", asset: "moulin.png" },
-    { id: "barde", name: "Barde", qty: 7, type: "Grenouille", base: 0, mode: "barde", text: "1/2/3/4/5+ Bardes: 10/6/3/1/0 par Barde.", asset: "barde.png" },
+    { id: "barde", name: "Barde", qty: 7, type: "Grenouille", base: 0, mode: "barde", bardeScores: [10, 6, 3, 1, 0], text: "1/2/3/4/5+ Bardes: 10/6/3/1/0 par Barde.", asset: "barde.png" },
     { id: "chevalier", name: "Chevalier", qty: 3, type: "Grenouille", base: 2, mode: "adjacent", pos: ["Oiseau"], value: 5, antiHeron: true, text: "+5 par Oiseau adjacent. Annule un Heron adjacent.", asset: "chevalier.png" },
     { id: "carpographe", name: "Carpographe", qty: 1, type: "Noble", base: 3, mode: "kingdom", pos: ["Carte au tresor"], value: 3, text: "+3 par Carte au tresor.", asset: "carpographe.png" },
     { id: "prince", name: "Prince", qty: 1, type: "Noble", base: 4, mode: "royal", text: "+6 si Princesse, +4 si Roi.", asset: "prince.png" },
@@ -42,7 +42,7 @@
     { id: "architecte", name: "Architecte", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Batiment"], value: 2, text: "+2 par Batiment.", asset: "architecte.png" },
     { id: "dame_lac", name: "Dame du lac", qty: 1, type: "Noble", base: 2, mode: "adjacent", pos: ["Objet", "Noble"], value: 3, text: "+3 par Objet/Noble adjacent.", asset: "dame_lac.png" },
     { id: "nenuphar", name: "Nenuphar", qty: 1, type: "Batiment", base: 0, mode: "kingdom", pos: ["Grenouille"], value: 3, text: "+3 par Grenouille.", asset: "nenuphar.png" },
-    { id: "grand_duc", name: "Grand Duc", qty: 1, type: "Oiseau", base: 0, mode: "grandDuc", immediate: "oiseaux", text: "Score selon Oiseaux: 1=10, 2=5, 3+=0. Si 4 Oiseaux: victoire immediate.", asset: "grand_duc.png" },
+    { id: "grand_duc", name: "Grand Duc", qty: 1, type: "Oiseau", base: 0, mode: "grandDuc", birdScores: [10, 5, 0], immediate: "oiseaux", text: "Score selon Oiseaux: 1=10, 2=5, 3+=0. Si 4 Oiseaux: victoire immediate.", asset: "grand_duc.png" },
     { id: "forum", name: "Forum", qty: 1, type: "Batiment", base: 4, mode: "position", pos: ["Centre"], value: 5, text: "+5 si case centrale.", asset: "forum.png" },
     { id: "pont_levis", name: "Pont-levis", qty: 1, type: "Batiment", base: 3, mode: "adjacent", pos: ["Batiment"], value: 3, text: "+3 par Batiment adjacent.", asset: "pont_levis.png" },
   ];
@@ -373,7 +373,7 @@
         }
         break;
       case "barde":
-        score += [10, 6, 3, 1, 0][Math.min(Math.max(0, countInKingdom(player, "Barde") - 1), 4)] || 0;
+        score += (def.bardeScores || [10, 6, 3, 1, 0])[Math.min(Math.max(0, countInKingdom(player, "Barde") - 1), 4)] || 0;
         break;
       case "minCount":
         if (countInKingdom(player, def.pos[0]) >= def.threshold) score += def.value;
@@ -387,7 +387,8 @@
         break;
       case "grandDuc": {
         const birds = countFamily(player, "Oiseau");
-        score += birds <= 1 ? 10 : birds === 2 ? 5 : 0;
+        const birdScores = def.birdScores || [10, 5, 0];
+        score += birds <= 1 ? birdScores[0] || 0 : birds === 2 ? birdScores[1] || 0 : birdScores[2] || 0;
         break;
       }
       case "heron":
@@ -489,6 +490,13 @@
       uid: card.uid,
       name: def.name,
       type: def.type,
+      qty: def.qty,
+      base: Number(def.base || 0),
+      value: Number(def.value || 0),
+      threshold: Number(def.threshold || 0),
+      negValue: Number(def.negValue || 0),
+      bardeScores: [...(def.bardeScores || [])],
+      birdScores: [...(def.birdScores || [])],
       text: def.text,
       asset: cardAsset(card, def),
       copyIndex: card.copyIndex,
@@ -499,7 +507,7 @@
   function publicState(room, viewerId) {
     const game = room.game;
     const viewerIndex = game?.players.findIndex(player => player.id === viewerId) ?? -1;
-    const pendingVisible = game?.pendingPlacement && game.pendingPlacement.playerId === viewerId;
+    const pendingVisible = Boolean(game?.pendingPlacement);
     return {
       code: room.code,
       hostId: room.hostId,
@@ -564,6 +572,52 @@
     };
   }
 
+  function scoringConfig() {
+    return CARDS.map(card => ({
+      id: card.id,
+      name: card.name,
+      base: Number(card.base || 0),
+      value: Number(card.value || 0),
+      threshold: Number(card.threshold || 0),
+      negValue: Number(card.negValue || 0),
+      bardeScores: [...(card.bardeScores || [])],
+      birdScores: [...(card.birdScores || [])],
+    }));
+  }
+
+  function toNumber(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function toNumberList(value, fallback) {
+    if (Array.isArray(value)) {
+      const numbers = value.map(Number).filter(Number.isFinite);
+      return numbers.length ? numbers : fallback;
+    }
+    if (typeof value === "string") {
+      const numbers = value.split(",").map(item => Number(item.trim())).filter(Number.isFinite);
+      return numbers.length ? numbers : fallback;
+    }
+    return fallback;
+  }
+
+  function applyCardOverrides(overrides) {
+    const entries = Array.isArray(overrides)
+      ? overrides
+      : Object.entries(overrides || {}).map(([id, values]) => ({ id, ...(values || {}) }));
+    for (const entry of entries) {
+      const card = CARD_BY_ID[entry.id];
+      if (!card) continue;
+      for (const field of ["base", "value", "threshold", "negValue"]) {
+        if (entry[field] !== undefined && entry[field] !== "") card[field] = toNumber(entry[field], card[field] || 0);
+      }
+      if (entry.bardeScores !== undefined) card.bardeScores = toNumberList(entry.bardeScores, card.bardeScores || []);
+      if (entry.birdScores !== undefined) card.birdScores = toNumberList(entry.birdScores, card.birdScores || []);
+    }
+    return scoringConfig();
+  }
+
   const api = {
     BOARD_W,
     BOARD_H,
@@ -584,6 +638,8 @@
     previewPlacementScore,
     placementDelta,
     scoreAll,
+    scoringConfig,
+    applyCardOverrides,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
