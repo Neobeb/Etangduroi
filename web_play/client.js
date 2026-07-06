@@ -67,7 +67,7 @@ els.playerName.addEventListener("input", () => {
 els.createRoom.addEventListener("click", () => createRoom());
 els.startGame.addEventListener("click", () => startGame());
 els.copyLink.addEventListener("click", () => copyLink());
-els.leaveRoom.addEventListener("click", () => returnToEntry());
+els.leaveRoom.addEventListener("click", () => leaveRoom());
 els.addBot.addEventListener("click", () => addBot());
 els.saveScoring.addEventListener("click", () => saveScoring());
 
@@ -198,6 +198,28 @@ async function addBot() {
   }
 }
 
+async function leaveRoom() {
+  if (!app.roomCode || !app.playerId) {
+    returnToEntry({ keepCode: false });
+    return;
+  }
+  if (app.state?.game && !app.state.game.over && !confirm("Quitter la partie ? Votre place sera jouee par l'IA.")) return;
+  const code = app.roomCode;
+  const playerId = app.playerId;
+  try {
+    els.leaveRoom.disabled = true;
+    await request(`/api/rooms/${encodeURIComponent(code)}/leave`, {
+      method: "POST",
+      body: JSON.stringify({ playerId }),
+    });
+    returnToEntry({ keepCode: false, clearSeat: true });
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    els.leaveRoom.disabled = false;
+  }
+}
+
 async function action(type, data = {}) {
   try {
     const payload = await request(`/api/rooms/${app.roomCode}/action`, {
@@ -246,18 +268,25 @@ function setEntryBusy(isBusy) {
   els.createRoom.disabled = isBusy;
 }
 
-function returnToEntry() {
+function returnToEntry({ keepCode = true, clearSeat = false } = {}) {
   if (app.events) app.events.close();
   app.events = null;
   const code = app.roomCode;
+  const name = localStorage.getItem("etang.name") || "";
   app.state = null;
   app.playerId = "";
+  if (clearSeat && code && name) localStorage.removeItem(seatKey(code, name));
   localStorage.removeItem("etang.playerId");
-  if (code) {
+  if (keepCode && code) {
     localStorage.setItem("etang.roomCode", code);
     app.roomCode = code;
     els.roomCode.value = code;
     history.replaceState(null, "", `?room=${code}`);
+  } else {
+    localStorage.removeItem("etang.roomCode");
+    app.roomCode = "";
+    els.roomCode.value = "";
+    history.replaceState(null, "", location.pathname);
   }
   els.tableView.classList.add("hidden");
   els.joinView.classList.remove("hidden");
