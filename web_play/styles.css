@@ -278,7 +278,9 @@ select {
 
 .offer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(176px, 176px));
+  align-items: start;
+  justify-content: start;
   gap: 12px;
 }
 
@@ -317,7 +319,7 @@ select {
 }
 
 .card-tile.hidden-card {
-  min-height: 250px;
+  min-height: 356px;
   place-content: center;
   background:
     linear-gradient(135deg, rgba(47, 111, 135, 0.2), rgba(45, 125, 84, 0.12)),
@@ -388,6 +390,11 @@ select {
   margin-top: 18px;
 }
 
+.boards.final {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  align-items: start;
+}
+
 .board-panel {
   background: var(--panel);
   border: 3px solid var(--line);
@@ -403,6 +410,14 @@ select {
 
 .board-panel.other {
   opacity: 0.9;
+}
+
+.board-panel.final,
+.boards.final .board-panel.me,
+.boards.final .board-panel.other {
+  grid-column: auto;
+  opacity: 1;
+  border-width: 3px;
 }
 
 .board-head {
@@ -455,6 +470,12 @@ select {
   min-height: 72px;
 }
 
+.board-panel.final .cell,
+.boards.final .board-panel.me .cell,
+.boards.final .board-panel.other .cell {
+  min-height: 112px;
+}
+
 .cell.filled {
   border-color: var(--line);
   background: white;
@@ -481,6 +502,12 @@ select {
 
 .board-panel.other .cell button {
   min-height: 72px;
+}
+
+.board-panel.final .cell button,
+.boards.final .board-panel.me .cell button,
+.boards.final .board-panel.other .cell button {
+  min-height: 112px;
 }
 
 .cell-card {
@@ -515,6 +542,19 @@ select {
 .board-panel.other .cell-card img {
   width: 34px;
   height: 48px;
+}
+
+.board-panel.final .cell-card,
+.boards.final .board-panel.me .cell-card,
+.boards.final .board-panel.other .cell-card {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.board-panel.final .cell-card img,
+.boards.final .board-panel.me .cell-card img,
+.boards.final .board-panel.other .cell-card img {
+  width: 52px;
+  height: 72px;
 }
 
 .cell-name {
@@ -577,6 +617,18 @@ select {
 @media (max-width: 900px) {
   .join-shell,
   .table-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .offer {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .card-tile.hidden-card {
+    min-height: 310px;
+  }
+
+  .boards.final {
     grid-template-columns: 1fr;
   }
 

@@ -384,14 +384,17 @@ function renderBoards(state) {
   const game = state.game;
   if (!game) {
     els.boards.innerHTML = "";
+    els.boards.classList.remove("final");
     return;
   }
+  els.boards.classList.toggle("final", Boolean(game.over));
   const orderedPlayers = [...game.players].sort((a, b) => {
+    if (game.over) return b.score - a.score || a.index - b.index;
     if (a.id === app.playerId) return -1;
     if (b.id === app.playerId) return 1;
     return a.index - b.index;
   });
-  els.boards.innerHTML = orderedPlayers.map(player => boardHtml(player, player.id === app.playerId)).join("");
+  els.boards.innerHTML = orderedPlayers.map(player => boardHtml(player, player.id === app.playerId, game.over)).join("");
   els.boards.querySelectorAll("button[data-place]").forEach(button => {
     button.addEventListener("click", () => {
       const [x, y] = button.dataset.place.split(",").map(Number);
@@ -400,7 +403,7 @@ function renderBoards(state) {
   });
 }
 
-function boardHtml(player, isMine) {
+function boardHtml(player, isMine, isFinal) {
   const cells = player.board.map(cell => ({ x: cell.x, y: cell.y }));
   for (const pos of player.legalPlacements || []) cells.push(pos);
   const bounds = boundsFor(cells) || { minX: 0, minY: 0, maxX: 3, maxY: 2 };
@@ -420,7 +423,7 @@ function boardHtml(player, isMine) {
     }
   }
   return `
-    <article class="board-panel ${isMine ? "me" : "other"}">
+    <article class="board-panel ${isMine ? "me" : "other"} ${isFinal ? "final" : ""}">
       <div class="board-head">
         <div>
           <strong>${escapeHtml(player.name)}${player.isBot ? ' <span class="bot-tag inline">IA</span>' : ""}</strong>
