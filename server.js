@@ -11,6 +11,14 @@ const simulatorDir = path.resolve(__dirname, "simulateur_v5");
 const rooms = new Map();
 const streams = new Map();
 
+const BOT_DELAY_MS = 450;
+const BOT_PROFILES = {
+  simple: { name: "IA Simple" },
+  opportuniste: { name: "IA Opportuniste" },
+  oiseaux: { name: "IA Oiseaux" },
+  prudente: { name: "IA Prudente" },
+};
+
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -65,6 +73,10 @@ function cleanName(value) {
   return name || "Auteur";
 }
 
+function cleanBotProfile(value) {
+  return BOT_PROFILES[value] ? value : "simple";
+}
+
 function getRoom(code) {
   const room = rooms.get(String(code || "").toUpperCase());
   if (!room) throw new Error("Salon introuvable.");
@@ -75,6 +87,11 @@ function ensurePlayer(room, playerId) {
   if (!room.players.some(player => player.id === playerId)) throw new Error("Joueur introuvable dans ce salon.");
 }
 
+function ensureHost(room, playerId) {
+  ensurePlayer(room, playerId);
+  if (room.hostId !== playerId) throw new Error("Seul l'hote peut faire ca.");
+}
+
 function createRoom(name) {
   const code = roomCode();
   const player = { id: randomUUID(), name: cleanName(name) };
@@ -83,6 +100,7 @@ function createRoom(name) {
     hostId: player.id,
     players: [player],
     game: null,
+    botTimer: null,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -98,6 +116,32 @@ function joinRoom(code, name) {
   room.players.push(player);
   touch(room);
   return { room, player };
+}
+
+function botName(room, profile) {
+  const base = BOT_PROFILES[profile].name;
+  let name = base;
+  let index = 2;
+  while (room.players.some(player => player.name === name)) {
+    name = `${base} ${index}`;
+    index++;
+  }
+  return name;
+}
+
+function addBot(room, profileValue) {
+  if (room.game) throw new Error("La partie est deja lancee.");
+  if (room.players.length >= 4) throw new Error("Le salon est complet.");
+  const profile = cleanBotProfile(profileValue);
+  const player = {
+    id: `bot-${randomUUID()}`,
+    name: botName(room, profile),
+    isBot: true,
+    botProfile: profile,
+  };
+  room.players.push(player);
+  touch(room);
+  return player;
 }
 
 function touch(room) {
@@ -121,6 +165,149 @@ function writeEvent(client) {
 function broadcast(room) {
   const clients = streamSet(room.code);
   for (const client of clients) writeEvent(client);
+}
+
+function scheduleBots(room) {
+  if (!room.game || room.game.over || room.botTimer) return;
+  if (!gameEngine.currentTurnPlayer(room.game)?.isBot) return;
+  room.botTimer = setTimeout(() => {
+    room.botTimer = null;
+    try {
+      const steps = playBots(room);
+      if (steps) touch(room);
+    } catch (error) {
+      console.error(`Bot error in room ${room.code}:`, error);
+    }
+  }, BOT_DELAY_MS);
+}
+
+function playBots(room) {
+  let steps = 0;
+  while (room.game && !room.game.over && steps < 80) {
+    const player = gameEngine.currentTurnPlayer(room.game);
+    if (!player?.isBot) break;
+    const profile = cleanBotProfile(player.botProfile);
+    if (room.game.phase === "hide") {
+      gameEngine.hideCard(room.game, player.id, chooseHideIndex(room.game, player, profile));
+    } else if (room.game.phase === "pick") {
+      gameEngine.takeCard(room.game, player.id, chooseTakeIndex(room.game, player, profile));
+    } else if (room.game.phase === "place") {
+      const card = room.game.pendingPlacement?.card;
+      const placement = choosePlacement(room.game, player, card, profile);
+      gameEngine.placeCard(room.game, player.id, placement.x, placement.y);
+    } else {
+      break;
+    }
+    steps++;
+  }
+  if (steps >= 80) throw new Error("Boucle IA interrompue.");
+  return steps;
+}
+
+function chooseHideIndex(game, player, profile) {
+  return bestIndex(game.offer.map((card, index) => ({
+    index,
+    score: cardValue(game, player, card, profile),
+  })));
+}
+
+function chooseTakeIndex(game, player, profile) {
+  return bestIndex(game.offer.map((card, index) => {
+    const known = index !== game.hiddenIndex || game.hiddenBy === player.id;
+    return {
+      index,
+      score: known ? cardValue(game, player, card, profile) : hiddenCardValue(profile),
+    };
+  }));
+}
+
+function choosePlacement(game, player, card, profile) {
+  return bestPlacement(game, player, card, profile).pos || gameEngine.legalPlacements(player)[0] || { x: 0, y: 0 };
+}
+
+function bestIndex(items) {
+  return items
+    .filter(item => Number.isFinite(item.score))
+    .sort((a, b) => b.score - a.score || a.index - b.index)[0]?.index ?? 0;
+}
+
+function bestPlacement(game, player, card, profile) {
+  const placements = gameEngine.legalPlacements(player);
+  return placements
+    .map(pos => ({ pos, score: placementValue(game, player, card, pos, profile) }))
+    .sort((a, b) => b.score - a.score || a.pos.y - b.pos.y || a.pos.x - b.pos.x)[0] || { pos: placements[0], score: 0 };
+}
+
+function placementValue(game, player, card, pos, profile) {
+  let value = gameEngine.placementDelta(player, card, pos);
+  if (makesImmediateWin(player, card)) value += 1000;
+  if (card.id === "tresor") value += treasureBonus(game, player);
+  if (profile === "opportuniste") value += synergyBonus(player, card);
+  if (profile === "oiseaux") value += birdBonus(player, card);
+  if (profile === "prudente") value += prudentAdjustment(player, card);
+  return value;
+}
+
+function cardValue(game, player, card, profile) {
+  return bestPlacement(game, player, card, profile).score;
+}
+
+function hiddenCardValue(profile) {
+  if (profile === "oiseaux") return 8;
+  if (profile === "prudente") return 1;
+  return 4;
+}
+
+function visibleCards(player) {
+  return player.board.filter(cell => !cell.destroyed).map(cell => cell.card);
+}
+
+function cardMatches(card, token) {
+  if (token === "Carte au tresor") return card.id === "tresor";
+  return card.type === token || card.name === token || card.id === token;
+}
+
+function countMatching(player, token) {
+  return visibleCards(player).filter(card => cardMatches(card, token)).length;
+}
+
+function countType(player, type) {
+  return visibleCards(player).filter(card => card.type === type).length;
+}
+
+function makesImmediateWin(player, card) {
+  return countType(player, "Oiseau") + (card.type === "Oiseau" ? 1 : 0) >= 4;
+}
+
+function treasureBonus(game, player) {
+  const mine = countMatching(player, "Carte au tresor") + 1;
+  const otherMax = Math.max(0, ...game.players.filter(item => item.id !== player.id).map(item => countMatching(item, "Carte au tresor")));
+  return mine > otherMax ? 10 : 2;
+}
+
+function synergyBonus(player, card) {
+  let bonus = 0;
+  for (const existing of visibleCards(player)) {
+    for (const token of existing.pos || []) {
+      if (cardMatches(card, token)) bonus += 1.5;
+    }
+  }
+  if (card.mode === "threshold" && card.pos?.length && countMatching(player, card.pos[0]) + 1 >= card.threshold) bonus += 6;
+  if (card.mode === "minCount" && card.pos?.length && countMatching(player, card.pos[0]) >= card.threshold) bonus += 6;
+  return bonus;
+}
+
+function birdBonus(player, card) {
+  if (card.type !== "Oiseau") return card.antiHeron ? 4 : 0;
+  const birds = countType(player, "Oiseau") + 1;
+  return birds >= 4 ? 500 : 28 + birds * 4;
+}
+
+function prudentAdjustment(player, card) {
+  let penalty = 0;
+  for (const token of card.neg || []) penalty += 3 + countMatching(player, token) * 2;
+  if (card.type === "Oiseau" && !makesImmediateWin(player, card)) penalty += 4;
+  return -penalty;
 }
 
 function sendFile(req, res, filePath) {
@@ -179,6 +366,16 @@ async function handleApi(req, res, url) {
       return;
     }
 
+    const botMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)\/bots$/i);
+    if (req.method === "POST" && botMatch) {
+      const room = getRoom(botMatch[1]);
+      const body = await readBody(req);
+      ensureHost(room, body.playerId);
+      addBot(room, body.profile);
+      sendJson(res, 200, { state: gameEngine.publicState(room, body.playerId) });
+      return;
+    }
+
     const stateMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)$/i);
     if (req.method === "GET" && stateMatch) {
       const room = getRoom(stateMatch[1]);
@@ -219,6 +416,7 @@ async function handleApi(req, res, url) {
       if (room.players.length > 4) throw new Error("Maximum 4 joueurs.");
       room.game = gameEngine.makeGame(room.players);
       touch(room);
+      scheduleBots(room);
       sendJson(res, 200, { state: gameEngine.publicState(room, body.playerId) });
       return;
     }
@@ -234,6 +432,7 @@ async function handleApi(req, res, url) {
       else if (body.type === "place") gameEngine.placeCard(room.game, body.playerId, Number(body.x), Number(body.y));
       else throw new Error("Action inconnue.");
       touch(room);
+      scheduleBots(room);
       sendJson(res, 200, { state: gameEngine.publicState(room, body.playerId) });
       return;
     }
