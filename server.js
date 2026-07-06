@@ -156,6 +156,41 @@ function addBot(room, profileValue) {
   return player;
 }
 
+function markPlayerAsBot(player) {
+  player.isBot = true;
+  player.botProfile = cleanBotProfile(player.botProfile);
+  if (!/\(IA\)$/.test(player.name)) player.name = `${player.name} (IA)`.slice(0, 28);
+}
+
+function leaveRoom(room, playerId) {
+  const index = room.players.findIndex(player => player.id === playerId);
+  if (index < 0) throw new Error("Joueur introuvable dans ce salon.");
+
+  if (room.game) {
+    const roomPlayer = room.players[index];
+    const gamePlayer = room.game.players.find(player => player.id === playerId);
+    markPlayerAsBot(roomPlayer);
+    if (gamePlayer) markPlayerAsBot(gamePlayer);
+    if (room.game.log) {
+      room.game.log.unshift(`${roomPlayer.name} prend la suite en IA.`);
+      room.game.log = room.game.log.slice(0, 80);
+    }
+    touch(room);
+    scheduleBots(room);
+    return { room, convertedToBot: true, deleted: false };
+  }
+
+  room.players.splice(index, 1);
+  if (!room.players.length) {
+    rooms.delete(room.code);
+    streams.delete(room.code);
+    return { room: null, convertedToBot: false, deleted: true };
+  }
+  if (room.hostId === playerId) room.hostId = room.players[0].id;
+  touch(room);
+  return { room, convertedToBot: false, deleted: false };
+}
+
 function touch(room) {
   room.updatedAt = Date.now();
   broadcast(room);
@@ -417,6 +452,20 @@ async function handleApi(req, res, url) {
       ensureHost(room, body.playerId);
       addBot(room, body.profile);
       sendJson(res, 200, { state: gameEngine.publicState(room, body.playerId) });
+      return;
+    }
+
+    const leaveMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)\/leave$/i);
+    if (req.method === "POST" && leaveMatch) {
+      const room = getRoom(leaveMatch[1]);
+      const body = await readBody(req);
+      const result = leaveRoom(room, body.playerId);
+      sendJson(res, 200, {
+        left: true,
+        convertedToBot: result.convertedToBot,
+        deleted: result.deleted,
+        state: result.room ? gameEngine.publicState(result.room, body.playerId) : null,
+      });
       return;
     }
 
