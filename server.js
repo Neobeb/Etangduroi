@@ -10,13 +10,11 @@ const simulatorDir = path.resolve(__dirname, "simulateur_v5");
 
 const rooms = new Map();
 const streams = new Map();
+const scoringFile = path.join(webDir, "scoring_overrides.json");
 
 const BOT_DELAY_MS = 450;
 const BOT_PROFILES = {
-  simple: { name: "IA Simple" },
-  opportuniste: { name: "IA Opportuniste" },
-  oiseaux: { name: "IA Oiseaux" },
-  prudente: { name: "IA Prudente" },
+  best: { name: "IA" },
 };
 
 const mimeTypes = {
@@ -41,6 +39,20 @@ function roomCode() {
 function sendJson(res, status, payload) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function loadScoringOverrides() {
+  try {
+    if (!fs.existsSync(scoringFile)) return;
+    const overrides = JSON.parse(fs.readFileSync(scoringFile, "utf8"));
+    gameEngine.applyCardOverrides(overrides);
+  } catch (error) {
+    console.error("Impossible de charger les reglages de scoring:", error.message);
+  }
+}
+
+function saveScoringOverrides(overrides) {
+  fs.writeFileSync(scoringFile, `${JSON.stringify(overrides, null, 2)}\n`, "utf8");
 }
 
 function readBody(req) {
@@ -74,7 +86,7 @@ function cleanName(value) {
 }
 
 function cleanBotProfile(value) {
-  return BOT_PROFILES[value] ? value : "simple";
+  return "best";
 }
 
 function getRoom(code) {
@@ -186,14 +198,13 @@ function playBots(room) {
   while (room.game && !room.game.over && steps < 80) {
     const player = gameEngine.currentTurnPlayer(room.game);
     if (!player?.isBot) break;
-    const profile = cleanBotProfile(player.botProfile);
     if (room.game.phase === "hide") {
-      gameEngine.hideCard(room.game, player.id, chooseHideIndex(room.game, player, profile));
+      gameEngine.hideCard(room.game, player.id, chooseHideIndex(room.game, player));
     } else if (room.game.phase === "pick") {
-      gameEngine.takeCard(room.game, player.id, chooseTakeIndex(room.game, player, profile));
+      gameEngine.takeCard(room.game, player.id, chooseTakeIndex(room.game, player));
     } else if (room.game.phase === "place") {
       const card = room.game.pendingPlacement?.card;
-      const placement = choosePlacement(room.game, player, card, profile);
+      const placement = choosePlacement(room.game, player, card);
       gameEngine.placeCard(room.game, player.id, placement.x, placement.y);
     } else {
       break;
@@ -204,25 +215,25 @@ function playBots(room) {
   return steps;
 }
 
-function chooseHideIndex(game, player, profile) {
+function chooseHideIndex(game, player) {
   return bestIndex(game.offer.map((card, index) => ({
     index,
-    score: cardValue(game, player, card, profile),
+    score: cardValue(game, player, card),
   })));
 }
 
-function chooseTakeIndex(game, player, profile) {
+function chooseTakeIndex(game, player) {
   return bestIndex(game.offer.map((card, index) => {
     const known = index !== game.hiddenIndex || game.hiddenBy === player.id;
     return {
       index,
-      score: known ? cardValue(game, player, card, profile) : hiddenCardValue(profile),
+      score: known ? cardValue(game, player, card) : hiddenCardValue(game, player),
     };
   }));
 }
 
-function choosePlacement(game, player, card, profile) {
-  return bestPlacement(game, player, card, profile).pos || gameEngine.legalPlacements(player)[0] || { x: 0, y: 0 };
+function choosePlacement(game, player, card) {
+  return bestPlacement(game, player, card).pos || gameEngine.legalPlacements(player)[0] || { x: 0, y: 0 };
 }
 
 function bestIndex(items) {
@@ -231,32 +242,39 @@ function bestIndex(items) {
     .sort((a, b) => b.score - a.score || a.index - b.index)[0]?.index ?? 0;
 }
 
-function bestPlacement(game, player, card, profile) {
+function bestPlacement(game, player, card) {
   const placements = gameEngine.legalPlacements(player);
   return placements
-    .map(pos => ({ pos, score: placementValue(game, player, card, pos, profile) }))
+    .map(pos => ({ pos, score: placementValue(game, player, card, pos) }))
     .sort((a, b) => b.score - a.score || a.pos.y - b.pos.y || a.pos.x - b.pos.x)[0] || { pos: placements[0], score: 0 };
 }
 
-function placementValue(game, player, card, pos, profile) {
+function placementValue(game, player, card, pos) {
   let value = gameEngine.placementDelta(player, card, pos);
   if (makesImmediateWin(player, card)) value += 1000;
   if (card.id === "tresor") value += treasureBonus(game, player);
-  if (profile === "simple") value += simplePlanBonus(player, card);
-  if (profile === "opportuniste") value += synergyBonus(player, card);
-  if (profile === "oiseaux") value += birdBonus(player, card);
-  if (profile === "prudente") value += prudentAdjustment(player, card);
+  value += strategicBonus(player, card);
+  value += birdBonus(player, card);
+  value += prudentAdjustment(player, card);
   return value;
 }
 
-function cardValue(game, player, card, profile) {
-  return bestPlacement(game, player, card, profile).score;
+function cardValue(game, player, card) {
+  return bestPlacement(game, player, card).score;
 }
 
-function hiddenCardValue(profile) {
-  if (profile === "oiseaux") return 8;
-  if (profile === "prudente") return 1;
-  return 4;
+function hiddenCardValue(game, player) {
+  const unknown = [...game.deck];
+  if (game.hiddenIndex >= 0 && game.offer[game.hiddenIndex]) unknown.push(game.offer[game.hiddenIndex]);
+  const values = unknown
+    .map(card => cardValue(game, player, card))
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a);
+  if (!values.length) return 0;
+  const bestSlice = values.slice(0, Math.max(1, Math.ceil(values.length * 0.18)));
+  const bestAverage = bestSlice.reduce((sum, value) => sum + value, 0) / bestSlice.length;
+  const globalAverage = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return bestAverage * 0.65 + globalAverage * 0.35 - 1.5;
 }
 
 function visibleCards(player) {
@@ -302,7 +320,7 @@ function synergyBonus(player, card) {
   return bonus;
 }
 
-function simplePlanBonus(player, card) {
+function strategicBonus(player, card) {
   let bonus = synergyBonus(player, card) * 0.8;
   if (card.mode === "kingdom") {
     for (const token of card.pos || []) bonus += Math.min(6, countAfterCard(player, token, card) * 1.4);
@@ -402,6 +420,19 @@ async function handleApi(req, res, url) {
       return;
     }
 
+    const scoringMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)\/scoring$/i);
+    if (req.method === "POST" && scoringMatch) {
+      const room = getRoom(scoringMatch[1]);
+      const body = await readBody(req);
+      ensureHost(room, body.playerId);
+      if (room.game) throw new Error("Les reglages se changent avant la partie.");
+      const scoring = gameEngine.applyCardOverrides(body.overrides || {});
+      saveScoringOverrides(scoring);
+      touch(room);
+      sendJson(res, 200, { scoring, state: gameEngine.publicState(room, body.playerId) });
+      return;
+    }
+
     const stateMatch = url.pathname.match(/^\/api\/rooms\/([A-Z0-9]+)$/i);
     if (req.method === "GET" && stateMatch) {
       const room = getRoom(stateMatch[1]);
@@ -475,6 +506,8 @@ setInterval(() => {
     if (room.updatedAt < cutoff && !streamSet(code).size) rooms.delete(code);
   }
 }, 30 * 60 * 1000).unref();
+
+loadScoringOverrides();
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
