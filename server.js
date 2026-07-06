@@ -242,6 +242,7 @@ function placementValue(game, player, card, pos, profile) {
   let value = gameEngine.placementDelta(player, card, pos);
   if (makesImmediateWin(player, card)) value += 1000;
   if (card.id === "tresor") value += treasureBonus(game, player);
+  if (profile === "simple") value += simplePlanBonus(player, card);
   if (profile === "opportuniste") value += synergyBonus(player, card);
   if (profile === "oiseaux") value += birdBonus(player, card);
   if (profile === "prudente") value += prudentAdjustment(player, card);
@@ -271,6 +272,10 @@ function countMatching(player, token) {
   return visibleCards(player).filter(card => cardMatches(card, token)).length;
 }
 
+function countAfterCard(player, token, card) {
+  return countMatching(player, token) + (cardMatches(card, token) ? 1 : 0);
+}
+
 function countType(player, type) {
   return visibleCards(player).filter(card => card.type === type).length;
 }
@@ -292,8 +297,29 @@ function synergyBonus(player, card) {
       if (cardMatches(card, token)) bonus += 1.5;
     }
   }
-  if (card.mode === "threshold" && card.pos?.length && countMatching(player, card.pos[0]) + 1 >= card.threshold) bonus += 6;
+  if (card.mode === "threshold" && card.pos?.length && countAfterCard(player, card.pos[0], card) >= card.threshold) bonus += 6;
   if (card.mode === "minCount" && card.pos?.length && countMatching(player, card.pos[0]) >= card.threshold) bonus += 6;
+  return bonus;
+}
+
+function simplePlanBonus(player, card) {
+  let bonus = synergyBonus(player, card) * 0.8;
+  if (card.mode === "kingdom") {
+    for (const token of card.pos || []) bonus += Math.min(6, countAfterCard(player, token, card) * 1.4);
+  }
+  if (card.mode === "adjacent") {
+    for (const token of card.pos || []) bonus += Math.min(4, countAfterCard(player, token, card));
+  }
+  if (card.mode === "threshold" && card.pos?.length) {
+    const missing = card.threshold - countAfterCard(player, card.pos[0], card);
+    if (missing <= 0) bonus += 8;
+    else if (missing === 1) bonus += 5;
+    else if (missing === 2) bonus += 2;
+  }
+  if (card.id === "bouffon") bonus += countMatching(player, "Barde") >= 2 ? 8 : countMatching(player, "Barde") * 2;
+  if (card.id === "barde" && countMatching(player, "Bouffon")) bonus += 8;
+  if (card.type === "Batiment" && countMatching(player, "Temple")) bonus += 3;
+  if (card.type === "Oiseau" && countMatching(player, "Magicien")) bonus += 3;
   return bonus;
 }
 
