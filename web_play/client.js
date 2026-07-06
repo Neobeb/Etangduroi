@@ -315,6 +315,7 @@ function renderFocus(state) {
   if (game.over) {
     const winner = game.players.find(player => player.id === game.winnerId);
     els.phaseLine.innerHTML = `<div class="done-banner">${escapeHtml(winner?.name || "Victoire")} - ${escapeHtml(game.winReason || "score")}</div>`;
+    els.pending.innerHTML = finalScoreSummary(game);
     return;
   }
   const active = game.players[game.active];
@@ -384,7 +385,12 @@ function renderBoards(state) {
     els.boards.innerHTML = "";
     return;
   }
-  els.boards.innerHTML = game.players.map(player => boardHtml(player, game.phase)).join("");
+  const orderedPlayers = [...game.players].sort((a, b) => {
+    if (a.id === app.playerId) return -1;
+    if (b.id === app.playerId) return 1;
+    return a.index - b.index;
+  });
+  els.boards.innerHTML = orderedPlayers.map(player => boardHtml(player, player.id === app.playerId)).join("");
   els.boards.querySelectorAll("button[data-place]").forEach(button => {
     button.addEventListener("click", () => {
       const [x, y] = button.dataset.place.split(",").map(Number);
@@ -393,7 +399,7 @@ function renderBoards(state) {
   });
 }
 
-function boardHtml(player) {
+function boardHtml(player, isMine) {
   const cells = player.board.map(cell => ({ x: cell.x, y: cell.y }));
   for (const pos of player.legalPlacements || []) cells.push(pos);
   const bounds = boundsFor(cells) || { minX: 0, minY: 0, maxX: 3, maxY: 2 };
@@ -413,16 +419,47 @@ function boardHtml(player) {
     }
   }
   return `
-    <article class="board-panel">
+    <article class="board-panel ${isMine ? "me" : "other"}">
       <div class="board-head">
         <div>
-          <strong>${escapeHtml(player.name)}</strong>
-          <div class="board-stats">Oiseaux ${player.birds} - Tresors ${player.treasures}${player.grail ? " - Graal" : ""}</div>
+          <strong>${escapeHtml(player.name)}${player.isBot ? ' <span class="bot-tag inline">IA</span>' : ""}</strong>
+          <div class="board-stats">Oiseaux ${player.birds} - Tresors ${player.treasures}${player.grail ? ' <span class="grail-badge">&#127942; +10</span>' : ""}</div>
         </div>
         <span class="score-pill">${player.score} PV</span>
       </div>
       <div class="board" style="grid-template-columns: repeat(${width}, minmax(0, 1fr));">${board.join("")}</div>
     </article>
+  `;
+}
+
+function finalScoreSummary(game) {
+  const rows = [...game.players]
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map((player, index) => `
+      <tr class="${player.grail ? "grail-winner" : ""}">
+        <td>${index + 1}</td>
+        <td>${escapeHtml(player.name)}${player.isBot ? ' <span class="bot-tag inline">IA</span>' : ""}</td>
+        <td>${player.cardScore ?? player.score - (player.grailPoints || 0)}</td>
+        <td>${player.grail ? '<span class="grail-badge">&#127942; +10</span>' : "0"}</td>
+        <td><strong>${player.score}</strong></td>
+      </tr>
+    `).join("");
+  return `
+    <section class="score-summary">
+      <h2>Decompte final</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Joueur</th>
+            <th>Cartes</th>
+            <th>Graal</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>
   `;
 }
 
