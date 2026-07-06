@@ -334,7 +334,7 @@ function renderFocus(state) {
     const owner = game.players.find(player => player.id === game.pendingPlacement?.playerId);
     els.phaseLine.textContent = owner?.id === app.playerId ? "Posez la carte" : `${owner?.name || "Un joueur"} pose sa carte`;
     if (game.pendingPlacement?.card) {
-      const tile = cardTile(game.pendingPlacement.card, "");
+      const tile = cardTile(game.pendingPlacement.card, "", null, "pending-card");
       els.pending.append(tile);
     }
   }
@@ -360,9 +360,10 @@ function renderOffer(offer, label, handler) {
   }
 }
 
-function cardTile(card, actionLabel, onAction) {
+function cardTile(card, actionLabel, onAction, extraClass = "") {
   const fragment = els.cardTemplate.content.cloneNode(true);
   const tile = fragment.querySelector(".card-tile");
+  if (extraClass) tile.classList.add(extraClass);
   const img = fragment.querySelector(".card-image");
   img.src = `assets/cards/${cardAsset(card)}`;
   img.alt = card.name;

@@ -526,7 +526,8 @@
           card: pendingVisible ? publicCard(game.pendingPlacement.card) : null,
         } : null,
         offer: game.offer.map((card, index) => {
-          const hidden = index === game.hiddenIndex && viewerId !== game.hiddenBy;
+          const hidden = (game.phase === "hide" && viewerId !== game.hiddenBy)
+            || (index === game.hiddenIndex && viewerId !== game.hiddenBy);
           return hidden ? { index, hidden: true } : { index, hidden: false, card: publicCard(card) };
         }),
         players: game.players.map(player => ({

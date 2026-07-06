@@ -236,6 +236,23 @@ select {
   font-weight: 1000;
 }
 
+.bot-tag.inline {
+  min-height: 16px;
+  vertical-align: middle;
+}
+
+.grail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 6px;
+  background: #f2d56d;
+  color: var(--line);
+  font-weight: 1000;
+}
+
 .table-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -267,6 +284,27 @@ select {
 
 .pending {
   margin-top: 14px;
+}
+
+.pending-card {
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: start;
+  max-width: 430px;
+}
+
+.pending-card .card-image-wrap {
+  grid-row: 1 / span 3;
+  width: 92px;
+}
+
+.pending-card .card-meta {
+  align-items: start;
+  flex-direction: column;
+}
+
+.pending-card .card-text {
+  min-height: 0;
+  font-size: 12px;
 }
 
 .card-tile {
@@ -345,7 +383,7 @@ select {
 
 .boards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
   margin-top: 18px;
 }
@@ -356,6 +394,15 @@ select {
   border-radius: 8px;
   box-shadow: var(--shadow);
   padding: 12px;
+}
+
+.board-panel.me {
+  grid-column: 1 / -1;
+  border-width: 4px;
+}
+
+.board-panel.other {
+  opacity: 0.9;
 }
 
 .board-head {
@@ -400,6 +447,14 @@ select {
   overflow: hidden;
 }
 
+.board-panel.me .cell {
+  min-height: 132px;
+}
+
+.board-panel.other .cell {
+  min-height: 72px;
+}
+
 .cell.filled {
   border-color: var(--line);
   background: white;
@@ -420,6 +475,14 @@ select {
   color: var(--line);
 }
 
+.board-panel.me .cell button {
+  min-height: 132px;
+}
+
+.board-panel.other .cell button {
+  min-height: 72px;
+}
+
 .cell-card {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
@@ -434,6 +497,24 @@ select {
   object-fit: contain;
   border: 1px solid var(--line);
   background: #dedede;
+}
+
+.board-panel.me .cell-card {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.board-panel.me .cell-card img {
+  width: 56px;
+  height: 78px;
+}
+
+.board-panel.other .cell-card {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+
+.board-panel.other .cell-card img {
+  width: 34px;
+  height: 48px;
 }
 
 .cell-name {
@@ -455,6 +536,42 @@ select {
   background: #f2d56d;
   font-weight: 1000;
   font-size: 20px;
+}
+
+.score-summary {
+  margin-top: 14px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  overflow: hidden;
+}
+
+.score-summary h2 {
+  margin: 0;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--line);
+  background: #f2d56d;
+}
+
+.score-summary table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.score-summary th,
+.score-summary td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #d6d0c4;
+  text-align: left;
+  font-weight: 800;
+}
+
+.score-summary th {
+  background: #fff7d7;
+}
+
+.score-summary tr.grail-winner {
+  background: #fff3b8;
 }
 
 @media (max-width: 900px) {
