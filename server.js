@@ -337,7 +337,7 @@ function strategicBonus(player, card) {
   if (card.id === "bouffon") bonus += countMatching(player, "Barde") >= 2 ? 8 : countMatching(player, "Barde") * 2;
   if (card.id === "barde" && countMatching(player, "Bouffon")) bonus += 8;
   if (card.type === "Batiment" && countMatching(player, "Temple")) bonus += 3;
-  if (card.type === "Oiseau" && countMatching(player, "Magicien")) bonus += 3;
+  if (card.type === "Oiseau" && countMatching(player, "magicien")) bonus += 3;
   return bonus;
 }
 
