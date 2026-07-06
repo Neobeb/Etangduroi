@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>L'Etang du Roi V10 - table web</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>L'Etang du Roi V10</h1>
+      <p>Table de playtest</p>
+    </div>
+    <div class="room-pill" id="roomPill">Hors salon</div>
+  </header>
+
+  <main>
+    <section id="joinView" class="join-shell">
+      <div class="join-visual" aria-hidden="true">
+        <img src="assets/cards/heron.png" alt="">
+        <img src="assets/cards/grand_duc.png" alt="">
+        <img src="assets/cards/tresor.png" alt="">
+      </div>
+      <form id="joinForm" class="join-panel">
+        <h2 id="joinTitle">Entrer a table</h2>
+        <p class="join-room-hint" id="roomHint"></p>
+        <label>Nom
+          <input id="playerName" autocomplete="name" maxlength="24" placeholder="Votre nom" required>
+        </label>
+        <label>Code salon
+          <input id="roomCode" autocomplete="off" maxlength="5" placeholder="ex. K7M2Q">
+        </label>
+        <div class="button-row">
+          <button type="submit" id="joinRoom">Rejoindre</button>
+          <button type="button" id="createRoom" class="secondary">Creer une partie</button>
+        </div>
+        <p class="error" id="joinError"></p>
+      </form>
+    </section>
+
+    <section id="tableView" class="table-shell hidden">
+      <section class="panel room-panel">
+        <div>
+          <h2 id="roomTitle">Salon</h2>
+          <div class="players-line" id="playersLine"></div>
+        </div>
+        <div class="button-row">
+          <button id="copyLink" class="secondary">Copier le lien</button>
+          <button id="leaveRoom" class="secondary">Changer de joueur</button>
+          <button id="startGame">Lancer</button>
+        </div>
+      </section>
+
+      <section class="table-grid">
+        <section class="panel focus-panel">
+          <div class="phase-line" id="phaseLine">En attente</div>
+          <div id="offer" class="offer"></div>
+          <div id="pending" class="pending"></div>
+        </section>
+
+        <section class="panel log-panel">
+          <h2>Journal</h2>
+          <div id="log" class="log"></div>
+        </section>
+      </section>
+
+      <section id="boards" class="boards"></section>
+    </section>
+  </main>
+
+  <template id="cardTemplate">
+    <article class="card-tile">
+      <div class="card-image-wrap"><img class="card-image" alt=""></div>
+      <div class="card-meta">
+        <strong class="card-name"></strong>
+        <span class="card-type"></span>
+      </div>
+      <p class="card-text"></p>
+      <button class="card-action"></button>
+    </article>
+  </template>
+
+  <script src="game.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
