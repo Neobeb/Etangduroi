@@ -14,6 +14,8 @@ const els = {
   playersLine: document.querySelector("#playersLine"),
   copyLink: document.querySelector("#copyLink"),
   leaveRoom: document.querySelector("#leaveRoom"),
+  botProfile: document.querySelector("#botProfile"),
+  addBot: document.querySelector("#addBot"),
   startGame: document.querySelector("#startGame"),
   phaseLine: document.querySelector("#phaseLine"),
   offer: document.querySelector("#offer"),
@@ -63,6 +65,7 @@ els.createRoom.addEventListener("click", () => createRoom());
 els.startGame.addEventListener("click", () => startGame());
 els.copyLink.addEventListener("click", () => copyLink());
 els.leaveRoom.addEventListener("click", () => returnToEntry());
+els.addBot.addEventListener("click", () => addBot());
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -170,6 +173,24 @@ async function startGame() {
     render();
   } catch (error) {
     alert(error.message);
+  } finally {
+    if (app.state) renderPlayers(app.state);
+  }
+}
+
+async function addBot() {
+  try {
+    els.addBot.disabled = true;
+    const payload = await request(`/api/rooms/${app.roomCode}/bots`, {
+      method: "POST",
+      body: JSON.stringify({ playerId: app.playerId, profile: els.botProfile.value }),
+    });
+    app.state = payload.state;
+    render();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    if (app.state) renderPlayers(app.state);
   }
 }
 
@@ -273,9 +294,14 @@ function render() {
 
 function renderPlayers(state) {
   els.playersLine.innerHTML = state.players.map(player => `
-    <span class="player-chip ${player.id === app.playerId ? "me" : ""}">${escapeHtml(player.name)}</span>
+    <span class="player-chip ${player.id === app.playerId ? "me" : ""} ${player.isBot ? "bot" : ""}">
+      ${escapeHtml(player.name)}${player.isBot ? '<span class="bot-tag">IA</span>' : ""}
+    </span>
   `).join("");
   els.startGame.disabled = state.hostId !== app.playerId || Boolean(state.game) || state.players.length < 2;
+  const canAddBot = state.hostId === app.playerId && !state.game && state.players.length < 4;
+  els.addBot.disabled = !canAddBot;
+  els.botProfile.disabled = !canAddBot;
 }
 
 function renderFocus(state) {

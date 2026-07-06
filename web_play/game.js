@@ -90,6 +90,8 @@
     const gamePlayers = players.map((player, index) => ({
       id: player.id,
       name: player.name,
+      isBot: Boolean(player.isBot),
+      botProfile: player.botProfile || "",
       index,
       board: [],
       score: 0,
@@ -155,6 +157,14 @@
 
   function currentPicker(game) {
     return game.players[game.pickOrder[game.pickCursor]] || null;
+  }
+
+  function currentTurnPlayer(game) {
+    if (!game || game.over) return null;
+    if (game.phase === "hide") return game.players[game.active] || null;
+    if (game.phase === "pick") return currentPicker(game);
+    if (game.phase === "place") return game.players.find(player => player.id === game.pendingPlacement?.playerId) || null;
+    return null;
   }
 
   function assertTurn(game, playerId, phase) {
@@ -404,12 +414,29 @@
     if (max > 0 && winners.length === 1) winners[0].grail = true;
   }
 
+  function rawBoardScore(player) {
+    return boardCards(player).reduce((sum, card) => sum + scoreCard(player, card), 0);
+  }
+
+  function scorePlayerBoard(player) {
+    return rawBoardScore(player) + (player.grail ? 10 : 0);
+  }
+
+  function previewPlacementScore(player, card, pos) {
+    const preview = {
+      ...player,
+      grail: false,
+      board: [...player.board, { x: pos.x, y: pos.y, card }],
+    };
+    return rawBoardScore(preview);
+  }
+
+  function placementDelta(player, card, pos) {
+    return previewPlacementScore(player, card, pos) - rawBoardScore(player);
+  }
+
   function scoreAll(players) {
-    for (const player of players) {
-      let total = boardCards(player).reduce((sum, card) => sum + scoreCard(player, card), 0);
-      if (player.grail) total += 10;
-      player.score = total;
-    }
+    for (const player of players) player.score = scorePlayerBoard(player);
   }
 
   function checkImmediate(player) {
@@ -477,7 +504,12 @@
       code: room.code,
       hostId: room.hostId,
       status: room.game ? "playing" : "lobby",
-      players: room.players.map(player => ({ id: player.id, name: player.name })),
+      players: room.players.map(player => ({
+        id: player.id,
+        name: player.name,
+        isBot: Boolean(player.isBot),
+        botProfile: player.botProfile || "",
+      })),
       you: viewerId ? { id: viewerId, index: viewerIndex } : null,
       game: game ? {
         round: game.round,
@@ -500,6 +532,8 @@
         players: game.players.map(player => ({
           id: player.id,
           name: player.name,
+          isBot: Boolean(player.isBot),
+          botProfile: player.botProfile || "",
           index: player.index,
           score: player.score,
           grail: player.grail,
@@ -536,12 +570,16 @@
     deckTotal,
     offerSizeForPlayers,
     makeGame,
+    currentTurnPlayer,
     hideCard,
     takeCard,
     placeCard,
     publicState,
     legalPlacements,
     scoreCard,
+    scorePlayerBoard,
+    previewPlacementScore,
+    placementDelta,
     scoreAll,
   };
 
