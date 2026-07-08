@@ -251,10 +251,53 @@ function playBots(room) {
 }
 
 function chooseHideIndex(game, player) {
+  const pickOrder = pickOrderAfterHide(game).filter(index => game.players[index]?.id !== player.id);
   return bestIndex(game.offer.map((card, index) => ({
     index,
-    score: cardValue(game, player, card),
+    score: hideCardValue(game, player, card, index, pickOrder),
   })));
+}
+
+function pickOrderAfterHide(game) {
+  if (game.players.length === 2) return [1 - game.active, game.active];
+  const order = [];
+  for (let i = 1; i < game.players.length; i++) order.push((game.active + i) % game.players.length);
+  order.push(game.active);
+  return order;
+}
+
+function hideCardValue(game, player, card, cardIndex, pickOrder) {
+  const myValues = game.offer.map(item => cardValue(game, player, item));
+  const myValue = myValues[cardIndex] ?? 0;
+  const myBest = Math.max(...myValues);
+  const keeperBonus = myValue >= myBest - 2 ? 5 : 0;
+  const threats = pickOrder
+    .map((playerIndex, orderIndex) => {
+      const opponent = game.players[playerIndex];
+      if (!opponent) return 0;
+      return opponentCardThreat(game, opponent, card, cardIndex, orderIndex);
+    })
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a);
+  const biggestThreat = threats[0] || 0;
+  const sharedThreat = threats.slice(1).reduce((sum, value) => sum + value, 0) * 0.22;
+  return myValue * 0.2 + keeperBonus + biggestThreat * 1.45 + sharedThreat;
+}
+
+function opponentCardThreat(game, opponent, card, cardIndex, orderIndex) {
+  const values = game.offer.map(item => cardValue(game, opponent, item));
+  const value = values[cardIndex] ?? 0;
+  const sorted = [...values].sort((a, b) => b - a);
+  const best = sorted[0] ?? value;
+  const second = sorted.find((_, index) => index > 0) ?? value;
+  const average = values.reduce((sum, item) => sum + item, 0) / Math.max(1, values.length);
+  const nextPlayerWeight = Math.max(0.9, 1.35 - orderIndex * 0.15);
+  let threat = value;
+  threat += Math.max(0, value - average) * 0.8;
+  if (value >= best - 1) threat += 18;
+  if (value - second >= 5) threat += 8;
+  if (makesImmediateWin(opponent, card)) threat += 900;
+  return threat * nextPlayerWeight;
 }
 
 function chooseTakeIndex(game, player) {
