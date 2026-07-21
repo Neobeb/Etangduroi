@@ -3,53 +3,74 @@ const BOARD_H = 3;
 
 const BASE_RULES = {
   handSize: 12,
-  roseauxImmediate: 4,
+  roseauxImmediate: 0,
   oiseauxImmediate: 4,
   grailPoints: 10,
   grailStrict: true,
   bardeScores: [10, 6, 3, 1, 0],
-  grandDucScores: [-10, 0, 10],
   royalPairBonus: 6,
   royalKingBonus: 4,
-  heronPenalty: 3,
 };
 
+const HERON_TARGETS = [
+  { id: "topLeft", label: "coin haut gauche", relX: 0, relY: 0 },
+  { id: "topRight", label: "coin haut droit", relX: BOARD_W - 1, relY: 0 },
+  { id: "bottomLeft", label: "coin bas gauche", relX: 0, relY: BOARD_H - 1 },
+  { id: "bottomRight", label: "coin bas droit", relX: BOARD_W - 1, relY: BOARD_H - 1 },
+  { id: "centerLeft", label: "centre gauche", relX: 1, relY: 1 },
+  { id: "centerRight", label: "centre droite", relX: 2, relY: 1 },
+];
+
 const BASE_CARDS = [
-  { id: "roseaux", name: "Roseaux fortifiés", qty: 5, type: "Bâtiment", base: 2, mode: "position", pos: ["Coin"], neg: [], value: 4, immediate: "roseaux", text: "+4 si coin. Victoire immédiate si 4 Roseaux." },
+  { id: "tresor", name: "Carte au trésor", qty: 5, type: "Objet", base: 3, mode: "majority", pos: ["Trésor"], neg: [], value: 10, text: "3 PV. Majorité stricte aux Cartes au trésor: Graal +10 global." },
+  { id: "barde", name: "Barde", qty: 7, type: "Grenouille", base: 0, mode: "set", pos: ["Barde"], neg: [], value: 0, text: "1/2/3/4/5+ Bardes: 10/6/3/1/0 par Barde." },
+  { id: "chevalier", name: "Chevalier", qty: 3, type: "Grenouille", base: 3, mode: "adjacent", pos: ["Oiseau"], neg: [], value: 5, antiHeron: true, text: "+5 par Oiseau adjacent. Annule l'effet d'un Héron adjacent." },
+  { id: "capitaine", name: "Capitaine", qty: 1, type: "Noble", base: 4, mode: "adjacent", pos: ["Oiseau"], neg: [], value: 4, antiHeron: true, text: "+4 par Oiseau adjacent. Annule l'effet d'un Héron adjacent." },
+  { id: "roseaux", name: "Roseaux fortifiés", qty: 5, type: "Bâtiment", base: 2, mode: "cornerSet", pos: ["Roseaux fortifiés"], neg: [], value: 3, text: "+3 par Roseaux fortifiés placé dans un coin du royaume." },
   { id: "coffre", name: "Coffre", qty: 1, type: "Objet", base: 0, floor: 3, mode: "kingdom", pos: ["Objet"], neg: [], value: 3, text: "+3 par Objet dans le royaume." },
-  { id: "moulin", name: "Moulin", qty: 1, type: "Bâtiment", base: 2, mode: "kingdom", pos: ["Paysan", "Grange"], neg: [], value: 3, text: "+3 par Paysan et Grange." },
-  { id: "barde", name: "Barde", qty: 7, type: "Grenouille", base: 0, mode: "set", pos: ["Barde"], neg: [], value: 0, text: "1/2/3/4/5+ Bardes: 10/6/3/1/0." },
-  { id: "chevalier", name: "Chevalier", qty: 3, type: "Grenouille", base: 2, mode: "adjacent", pos: ["Oiseau"], neg: [], value: 5, text: "+5 par Oiseau adjacent." },
-  { id: "grand_duc", name: "Grand Duc", qty: 1, type: "Oiseau", base: 0, mode: "birdSet", pos: ["Oiseau"], neg: [], value: 0, immediate: "oiseaux", text: "-10/0/+10 selon Oiseaux. Victoire si 4 Oiseaux." },
+  { id: "moulin", name: "Moulin", qty: 1, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Paysan", "Grange"], neg: [], value: 4, text: "+4 par Paysan et Grange." },
   { id: "carpographe", name: "Carpographe", qty: 1, type: "Noble", base: 3, mode: "kingdom", pos: ["Carte au trésor"], neg: [], value: 3, text: "+3 par Carte au trésor." },
   { id: "prince", name: "Prince", qty: 1, type: "Noble", base: 4, mode: "presence", pos: ["Princesse", "Roi"], neg: [], value: 0, text: "+6 si Princesse, +4 si Roi." },
   { id: "princesse", name: "Princesse", qty: 1, type: "Noble", base: 4, mode: "presence", pos: ["Prince", "Roi"], neg: [], value: 0, text: "+6 si Prince, +4 si Roi." },
-  { id: "heron", name: "Héron", qty: 4, type: "Oiseau", base: 5, mode: "heron", pos: ["Chevalier"], neg: [], value: 0, immediate: "oiseaux", text: "Si pas Chevalier adjacent, destruction simplifiée. Victoire si 4 Oiseaux." },
-  { id: "tresor", name: "Carte au trésor", qty: 5, type: "Objet", base: 3, mode: "majority", pos: ["Trésor"], neg: [], value: 10, text: "Majorité stricte: Graal +10 global." },
+  { id: "heron", name: "Héron", qty: 5, type: "Oiseau", base: 5, mode: "heron", pos: [], neg: [], value: 0, immediate: "oiseaux", heronTargets: HERON_TARGETS.map(target => target.id), text: "5 PV. En fin de partie, détruit sa case marquée sauf si Chevalier ou Capitaine adjacent. Victoire si 4 Oiseaux." },
   { id: "paysan", name: "Paysan", qty: 3, type: "Grenouille", base: 0, mode: "kingdom", pos: ["Algues"], neg: [], value: 4, text: "+4 par Algues." },
-  { id: "sorcier", name: "Sorcier", qty: 1, type: "Grenouille", base: 0, mode: "mixedKingdomAdj", pos: ["Oiseau"], neg: ["Noble"], value: 5, negValue: 5, text: "+5 par Oiseau, -5 par Noble adjacent." },
-  { id: "algues", name: "Algues", qty: 3, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Grenouille"], neg: [], value: 3, text: "+3 par Grenouille adjacente." },
+  { id: "algues", name: "Algues", qty: 3, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Grenouille"], neg: [], value: 4, text: "+4 par Grenouille adjacente." },
   { id: "roi", name: "Roi", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Carte au trésor", "Noble"], neg: [], value: 2, text: "+2 par Trésor et Noble." },
-  { id: "donjon", name: "Donjon", qty: 1, type: "Bâtiment", base: 2, mode: "adjacent", pos: ["Noble", "Oiseau"], neg: [], value: 3, text: "+3 par Noble/Oiseau adjacent." },
-  { id: "temple", name: "Temple", qty: 1, type: "Bâtiment", base: 0, mode: "threshold", pos: ["Bâtiment"], neg: ["Objet"], value: 12, negValue: 1, threshold: 5, text: "+12 si 5+ Bâtiments, -1 par Objet." },
-  { id: "moine", name: "Moine", qty: 1, type: "Noble", base: 3, mode: "grail", pos: ["Graal"], neg: ["Grenouille"], value: 10, negValue: 1, text: "+10 si Graal, -1 par Grenouille." },
-  { id: "revolutionnaire", name: "Révolutionnaire", qty: 1, type: "Grenouille", base: 0, mode: "threshold", pos: ["Grenouille"], neg: ["Noble"], value: 12, negValue: 1, threshold: 5, text: "+12 si 5+ Grenouilles, -1 par Noble." },
-  { id: "pelican", name: "Pélican", qty: 1, type: "Oiseau", base: 0, floor: 3, mode: "mixedKingdomAdj", pos: ["Oiseau"], neg: ["Bâtiment"], value: 3, negValue: 3, immediate: "oiseaux", text: "+3 par Oiseau, -3 par Bâtiment adjacent. Victoire si 4 Oiseaux." },
-  { id: "grange", name: "Grange", qty: 2, type: "Bâtiment", base: 2, mode: "kingdom", pos: ["Paysan", "Algues"], neg: [], value: 2, text: "+2 par Paysan et Algues." },
-  { id: "bouffon", name: "Bouffon", qty: 1, type: "Grenouille", base: 0, mode: "minCount", pos: ["Barde"], neg: [], value: 20, threshold: 3, text: "+20 si 3+ Bardes." },
-  { id: "antiquaire", name: "Antiquaire", qty: 1, type: "Grenouille", base: 0, mode: "adjacent", pos: ["Objet"], neg: [], value: 4, text: "+4 par Objet adjacent." },
-  { id: "magicien", name: "Magicien", qty: 1, type: "Noble", base: 0, mode: "mixed", pos: ["Oiseau"], neg: ["Grenouille"], value: 5, negValue: 5, text: "+5 par Oiseau adjacent, -5 par Grenouille adjacente." },
-  { id: "architecte", name: "Architecte", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Bâtiment"], neg: [], value: 2, text: "+2 par Bâtiment." },
+  { id: "donjon", name: "Donjon", qty: 1, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Noble", "Oiseau"], neg: [], value: 4, text: "+4 par Noble/Oiseau adjacent." },
   { id: "dame_lac", name: "Dame du lac", qty: 1, type: "Noble", base: 2, mode: "adjacent", pos: ["Objet", "Noble"], neg: [], value: 3, text: "+3 par Objet/Noble adjacent." },
+  { id: "bouffon", name: "Bouffon", qty: 1, type: "Grenouille", base: 0, mode: "minCount", pos: ["Barde"], neg: [], value: 20, threshold: 3, text: "+20 si 3+ Bardes." },
+  { id: "pont_levis", name: "Pont-levis", qty: 1, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Bâtiment"], neg: [], value: 4, text: "+4 par Bâtiment adjacent." },
+  { id: "grange", name: "Grange", qty: 2, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Paysan", "Algues"], neg: [], value: 3, text: "+3 par Paysan et Algues." },
   { id: "nenuphar", name: "Nénuphar", qty: 1, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Grenouille"], neg: [], value: 3, text: "+3 par Grenouille." },
+  { id: "architecte", name: "Architecte", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Bâtiment"], neg: [], value: 2, text: "+2 par Bâtiment." },
+  { id: "revolutionnaire", name: "Révolutionnaire", qty: 1, type: "Grenouille", base: 0, mode: "threshold", pos: ["Grenouille"], neg: [], value: 12, negValue: 0, threshold: 5, text: "+12 si 5+ Grenouilles." },
   { id: "forum", name: "Forum", qty: 1, type: "Bâtiment", base: 4, mode: "position", pos: ["Centre"], neg: [], value: 5, text: "+5 si case centrale." },
-  { id: "pont_levis", name: "Pont levis", qty: 1, type: "Bâtiment", base: 3, mode: "adjacent", pos: ["Bâtiment"], neg: [], value: 3, text: "+3 par Bâtiment adjacent." },
+  { id: "magicien", name: "Magicien", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Héron"], neg: [], value: 15, negValue: 0, threshold: 3, text: "+15 si 3+ Hérons." },
+  { id: "moine", name: "Moine", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Carte au trésor"], neg: [], value: 15, negValue: 0, threshold: 2, text: "+15 si 2+ Cartes au trésor." },
+  { id: "temple", name: "Temple", qty: 1, type: "Objet", base: 0, mode: "threshold", pos: ["Bâtiment"], neg: [], value: 15, negValue: 0, threshold: 4, text: "+15 si 4+ Bâtiments." },
+  { id: "antiquaire", name: "Antiquaire", qty: 1, type: "Grenouille", base: 0, mode: "adjacent", pos: ["Objet"], neg: [], value: 5, text: "+5 par Objet adjacent." },
 ];
 
 const BASE_DECK_TOTAL = BASE_CARDS.reduce((sum, card) => sum + Number(card.qty || 0), 0);
 
+const PENALTY_FREE_CARD_TEXT = {
+  revolutionnaire: "+12 si 5+ Grenouilles.",
+  magicien: "+15 si 3+ Hérons.",
+  moine: "+15 si 2+ Cartes au trésor.",
+  temple: "+15 si 4+ Bâtiments.",
+};
+
+function removePerCardPenalty(card) {
+  return {
+    ...card,
+    neg: [],
+    negValue: 0,
+    text: PENALTY_FREE_CARD_TEXT[card.id] || card.text,
+  };
+}
+
 const state = {
-  cards: structuredClone(BASE_CARDS),
+  cards: migrateCards(structuredClone(BASE_CARDS)),
   rules: structuredClone(BASE_RULES),
   game: null,
   selectedCard: null,
@@ -71,10 +92,11 @@ const FAMILY_ORDER = ["Bâtiment", "Objet", "Oiseau", "Grenouille", "Noble"];
 
 const COMBO_RULES = [
   { id: "barde_bouffon", label: "Barde + Bouffon", test: deck => deck.ids.bouffon >= 1 && deck.ids.barde >= 3 },
-  { id: "oiseaux_chevalier", label: "Oiseaux + Chevalier", test: deck => deck.ids.chevalier >= 1 && deck.families.oiseau >= 2 },
-  { id: "tresors_moteur", label: "Tresors + moteur", test: deck => deck.ids.tresor >= 2 && (deck.ids.coffre >= 1 || deck.ids.carpographe >= 1 || deck.ids.roi >= 1) },
+  { id: "oiseaux_chevalier", label: "Oiseaux + Chevalier/Capitaine", test: deck => (deck.ids.chevalier >= 1 || deck.ids.capitaine >= 1) && deck.families.oiseau >= 2 },
+  { id: "tresors_moteur", label: "Tresors + moteur", test: deck => deck.ids.tresor >= 2 && (deck.ids.coffre >= 1 || deck.ids.carpographe >= 1 || deck.ids.roi >= 1 || deck.ids.moine >= 1) },
   { id: "grenouilles_revolutionnaire", label: "Grenouilles + Revolutionnaire", test: deck => deck.ids.revolutionnaire >= 1 && deck.families.grenouille >= 5 },
-  { id: "batiments_architecte_temple", label: "Batiments + Architecte/Temple", test: deck => deck.families.batiment >= 5 && (deck.ids.architecte >= 1 || deck.ids.temple >= 1) },
+  { id: "batiments_moteur", label: "Batiments + moteur", test: deck => deck.families.batiment >= 5 && (deck.ids.architecte >= 1 || deck.ids.temple >= 1) },
+  { id: "herons_magicien", label: "Hérons + Magicien", test: deck => deck.ids.magicien >= 1 && deck.ids.heron >= 3 },
 ];
 
 function numericRule(key, fallback = BASE_RULES[key]) {
@@ -90,12 +112,21 @@ function handSize() {
   return Math.max(1, intRule("handSize", BASE_RULES.handSize));
 }
 
+function offerSizeForPlayers(playersCount) {
+  return playersCount === 2 ? 3 : playersCount;
+}
+
 function immediateThreshold(kind) {
-  return Math.max(1, intRule(kind === "roseaux" ? "roseauxImmediate" : "oiseauxImmediate", 4));
+  return Math.max(0, intRule(kind === "roseaux" ? "roseauxImmediate" : "oiseauxImmediate", 4));
+}
+
+function immediateEnabled(kind) {
+  return immediateThreshold(kind) > 0;
 }
 
 function immediateLabel(kind) {
-  return `${immediateThreshold(kind)} ${kind === "roseaux" ? "Roseaux" : "Oiseaux"}`;
+  const threshold = immediateThreshold(kind);
+  return threshold > 0 ? `${threshold} ${kind === "roseaux" ? "Roseaux" : "Oiseaux"}` : "désactivée";
 }
 
 function isRoseauxWin(win) {
@@ -134,7 +165,6 @@ function signedNumber(value) {
 function cardRulesText(card) {
   card = hydrateCard(card);
   if (card.id === "barde") return `1/2/3/4/5+ Bardes: ${formatScoreList(state.rules.bardeScores)}.`;
-  if (card.id === "grand_duc") return `${formatScoreList(state.rules.grandDucScores)} selon le nombre d'Oiseaux. Victoire si ${immediateLabel("oiseaux")}.`;
   if (card.id === "tresor") {
     return `Majorité ${state.rules.grailStrict ? "stricte" : "partagée"}: Graal ${signedNumber(numericRule("grailPoints", BASE_RULES.grailPoints))} global.`;
   }
@@ -145,7 +175,9 @@ function cardRulesText(card) {
     return `${signedNumber(numericRule("royalPairBonus", 6))} si Prince, ${signedNumber(numericRule("royalKingBonus", 4))} si Roi.`;
   }
   if (card.id === "heron") {
-    return `Si pas Chevalier adjacent, ${signedNumber(-numericRule("heronPenalty", 3))} PV. Victoire si ${immediateLabel("oiseaux")}.`;
+    const target = heronTargetLabel(card);
+    const targetText = target ? ` Détruit: ${target}.` : " Les exemplaires ciblent les 4 coins puis les deux cases centrales.";
+    return `5 PV.${targetText} Annulé par Chevalier/Capitaine adjacent. Victoire si ${immediateLabel("oiseaux")}.`;
   }
   let text = card.text || "Effet non renseigné.";
   if (card.immediate === "roseaux") text = text.replace(/4 Roseaux/g, immediateLabel("roseaux"));
@@ -156,7 +188,12 @@ function cardRulesText(card) {
 function hydrateCard(card) {
   if (!card?.id) return card;
   const live = state.cards.find(item => item.id === card.id);
-  return live ? { ...live, uid: card.uid } : card;
+  return live ? {
+    ...live,
+    uid: card.uid,
+    copyIndex: card.copyIndex,
+    heronTarget: card.heronTarget,
+  } : card;
 }
 
 function syncMajorityCardFromRules() {
@@ -164,14 +201,45 @@ function syncMajorityCardFromRules() {
   if (tresor) tresor.value = numericRule("grailPoints", BASE_RULES.grailPoints);
 }
 
-function cloneCard(card) {
-  return { ...card, uid: `${card.id}-${Math.random().toString(36).slice(2)}` };
+function migrateCards(cards) {
+  return cards.map(card => {
+    if (card.id === "chevalier") return { ...card, antiHeron: true };
+    if (card.id === "capitaine") return { ...card, antiHeron: true };
+    if (card.id === "heron") return {
+      ...card,
+      qty: Number(card.qty || 0) || 5,
+      type: "Oiseau",
+      base: Number(card.base || 0) || 5,
+      mode: "heron",
+      immediate: "oiseaux",
+      heronTargets: HERON_TARGETS.map(target => target.id),
+    };
+    if (["revolutionnaire", "magicien", "moine"].includes(card.id)) return removePerCardPenalty(card);
+    if (card.id !== "temple") return card;
+    return removePerCardPenalty({
+      ...card,
+      name: "Temple",
+      type: "Objet",
+      mode: "threshold",
+      pos: ["Bâtiment"],
+      value: Number(card.value || 0) || 15,
+      threshold: Number(card.threshold || 0) || 4,
+    });
+  });
+}
+
+function cloneCard(card, copyIndex = 0) {
+  const copy = { ...card, uid: `${card.id}-${copyIndex}-${Math.random().toString(36).slice(2)}`, copyIndex };
+  if (card.id === "heron") {
+    copy.heronTarget = card.heronTargets?.[copyIndex] || HERON_TARGETS[copyIndex % HERON_TARGETS.length].id;
+  }
+  return copy;
 }
 
 function deckFromCards(cards) {
   const deck = [];
   for (const card of cards) {
-    for (let i = 0; i < Number(card.qty || 0); i++) deck.push(cloneCard(card));
+    for (let i = 0; i < Number(card.qty || 0); i++) deck.push(cloneCard(card, i));
   }
   return deck;
 }
@@ -187,7 +255,7 @@ function shuffle(deck) {
 function prepareDeck(cards, players, mode) {
   syncMajorityCardFromRules();
   const full = shuffle(deckFromCards(cards));
-  const needed = players * handSize();
+  const needed = offerSizeForPlayers(players) * handSize();
   if (mode !== "secure") return full.slice(0, needed);
   const mandatory = [];
   const rest = [];
@@ -196,9 +264,9 @@ function prepareDeck(cards, players, mode) {
   const roseauxNeeded = immediateThreshold("roseaux");
   const oiseauxNeeded = immediateThreshold("oiseaux");
   for (const card of full) {
-    if (card.id === "roseaux" && roseaux < roseauxNeeded) {
+    if (roseauxNeeded > 0 && card.id === "roseaux" && roseaux < roseauxNeeded) {
       mandatory.push(card); roseaux++;
-    } else if (card.type === "Oiseau" && oiseaux < oiseauxNeeded) {
+    } else if (oiseauxNeeded > 0 && card.type === "Oiseau" && oiseaux < oiseauxNeeded) {
       mandatory.push(card); oiseaux++;
     } else {
       rest.push(card);
@@ -239,7 +307,7 @@ function newGame(playersCount, agent, prep, counterDraft = false) {
     over: false,
     log: [],
   };
-  log(`Nouvelle partie ${playersCount} joueurs, deck ${deck.length} cartes.`);
+  log(`Nouvelle partie ${playersCount} joueurs, ${deck.length} cartes utilisees sur ${deckTotalCards()}.`);
   log(counterDraft ? "Contre-draft adverse actif." : "Contre-draft adverse inactif.");
   nextDraft();
   renderGame();
@@ -258,7 +326,7 @@ function nextDraft() {
     finishGame();
     return;
   }
-  const n = g.players.length === 2 ? 3 : g.players.length;
+  const n = offerSizeForPlayers(g.players.length);
   g.offer = g.deck.splice(0, n);
   g.hiddenIndex = -1;
   g.hiddenBy = g.active;
@@ -327,16 +395,24 @@ function proceedAgents() {
     const human = g.players.find(p => p.human);
     const humanStrategy = human ? inferHumanStrategy(human) : "balanced";
     const idx = g.counterDraft && human && player.index !== human.index
-      ? chooseCounterDraftOfferIndex(player, visibleOffer(), human, humanStrategy)
-      : chooseOfferIndex(player, visibleOffer(), player.agent);
+      ? chooseCounterDraftOfferIndex(player, visibleOfferForPlayer(player.index), human, humanStrategy)
+      : chooseOfferIndex(player, visibleOfferForPlayer(player.index), player.agent);
     takeOffer(idx);
   }
   renderGame();
 }
 
 function visibleOffer() {
+  return visibleOfferForPlayer(null);
+}
+
+function visibleOfferForPlayer(playerIndex = null) {
   const g = state.game;
-  return g.offer.map((card, idx) => ({ card, idx, hidden: idx === g.hiddenIndex }));
+  return g.offer.map((card, idx) => ({
+    card,
+    idx,
+    hidden: idx === g.hiddenIndex && playerIndex !== g.hiddenBy,
+  }));
 }
 
 function takeOffer(offerIdx) {
@@ -348,12 +424,6 @@ function takeOffer(offerIdx) {
   g.offer.splice(offerIdx, 1);
   if (g.hiddenIndex === offerIdx) g.hiddenIndex = -1;
   if (g.hiddenIndex > offerIdx) g.hiddenIndex--;
-  if (g.players.length === 2 && g.pickCursor === 1 && g.offer.length > 0) {
-    const discarded = g.offer.splice(0, 1)[0];
-    if (g.hiddenIndex === 0) g.hiddenIndex = -1;
-    if (g.hiddenIndex > 0) g.hiddenIndex--;
-    log(`${discarded.name} est défaussée.`);
-  }
   log(`${player.name} prend ${card.name}.`);
   g.phase = "placement";
   g.pendingPlacement = { playerIndex: player.index, card, offerBefore, hiddenBefore };
@@ -380,12 +450,22 @@ function afterPlacement(player, card) {
   g.pickCursor++;
   g.phase = "draft";
   if (g.pickCursor >= g.pickOrder.length) {
+    discardRemainingOffer();
     g.round++;
     g.active = (g.active + 1) % g.players.length;
     nextDraft();
   } else {
     proceedAgents();
   }
+}
+
+function discardRemainingOffer() {
+  const g = state.game;
+  if (!g?.offer?.length) return;
+  const discarded = g.offer.splice(0);
+  g.hiddenIndex = -1;
+  const names = discarded.map(card => card.name).join(", ");
+  log(`${names} ${discarded.length > 1 ? "sont defaussees" : "est defaussee"}.`);
 }
 
 function cancelHumanChoice() {
@@ -419,13 +499,23 @@ function normalizeId(name) {
   return String(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 }
 
-function boardCards(player) {
-  return player.board.map(cell => hydrateCard(cell.card));
+function boardEntries(player, { includeDestroyed = false } = {}) {
+  return player.board
+    .filter(cell => includeDestroyed || !cell.destroyed)
+    .map(cell => ({ ...cell, card: hydrateCard(cell.card) }));
 }
 
-function getBoardCard(player, x, y) {
-  const card = player.board.find(cell => cell.x === x && cell.y === y)?.card || null;
-  return card ? hydrateCard(card) : null;
+function boardCards(player, options) {
+  return boardEntries(player, options).map(cell => cell.card);
+}
+
+function getBoardEntry(player, x, y, { includeDestroyed = false } = {}) {
+  const cell = player.board.find(entry => entry.x === x && entry.y === y && (includeDestroyed || !entry.destroyed));
+  return cell ? { ...cell, card: hydrateCard(cell.card) } : null;
+}
+
+function getBoardCard(player, x, y, options) {
+  return getBoardEntry(player, x, y, options)?.card || null;
 }
 
 function placeBoardCard(player, x, y, card) {
@@ -443,7 +533,7 @@ function neighbors(player, x, y) {
 }
 
 function findCard(player, uid) {
-  const cell = player.board.find(entry => entry.card.uid === uid);
+  const cell = player.board.find(entry => entry.card.uid === uid && !entry.destroyed);
   return cell ? { x: cell.x, y: cell.y } : null;
 }
 
@@ -500,6 +590,77 @@ function isDynamicCenter(player, pos) {
   return centerXs.includes(pos.x) && centerYs.includes(pos.y);
 }
 
+function heronTargetById(targetId) {
+  return HERON_TARGETS.find(target => target.id === targetId) || null;
+}
+
+function heronTargetLabel(card) {
+  return heronTargetById(card?.heronTarget)?.label || "";
+}
+
+function heronTargetCoord(bounds, targetId) {
+  const target = heronTargetById(targetId);
+  if (!bounds || !target) return null;
+  return { x: bounds.minX + target.relX, y: bounds.minY + target.relY };
+}
+
+function isAntiHeronCard(card) {
+  return card?.antiHeron || card?.id === "chevalier" || card?.id === "capitaine";
+}
+
+function isHeronBlocked(player, cell) {
+  return neighbors(player, cell.x, cell.y).some(isAntiHeronCard);
+}
+
+function countCornerMatches(player, token) {
+  return boardEntries(player).filter(cell => matches(cell.card, token) && isDynamicCorner(player, cell)).length;
+}
+
+function applyHeronDestruction(player) {
+  const bounds = boardBounds(player);
+  if (!bounds) return [];
+  const toDestroy = new Map();
+  const herons = boardEntries(player).filter(cell => cell.card.id === "heron");
+  for (const heron of herons) {
+    if (isHeronBlocked(player, heron)) continue;
+    const target = heronTargetCoord(bounds, heron.card.heronTarget);
+    if (!target) continue;
+    const targetEntry = getBoardEntry(player, target.x, target.y);
+    if (!targetEntry) continue;
+    toDestroy.set(`${target.x},${target.y}`, {
+      target,
+      card: targetEntry.card,
+      heron,
+    });
+  }
+  const destructions = [];
+  for (const entry of toDestroy.values()) {
+    const cell = player.board.find(item => item.x === entry.target.x && item.y === entry.target.y);
+    if (!cell || cell.destroyed) continue;
+    cell.destroyed = true;
+    cell.destroyedBy = entry.heron.card.uid;
+    destructions.push(entry);
+  }
+  return destructions;
+}
+
+function applyEndOfGameEffects(game) {
+  if (!game || game.heronDestructionApplied) return;
+  game.heronDestructions = [];
+  for (const player of game.players) {
+    const destructions = applyHeronDestruction(player);
+    game.heronDestructions.push(...destructions.map(entry => ({
+      player: player.name,
+      card: entry.card.name,
+      target: heronTargetLabel(entry.heron.card),
+    })));
+  }
+  game.heronDestructionApplied = true;
+  if (game.heronDestructions.length) {
+    log(`Hérons: ${game.heronDestructions.length} carte(s) détruite(s) avant scoring.`);
+  }
+}
+
 function autoPlace(player, card) {
   const spots = legalPlacements(player);
   let best = spots[0];
@@ -547,6 +708,9 @@ function scoreCard(player, card) {
       if (card.pos.includes("Coin") && isDynamicCorner(player, pos)) score += Number(card.value || 0);
       if (card.pos.includes("Centre") && isDynamicCenter(player, pos)) score += Number(card.value || 0);
       break;
+    case "cornerSet":
+      for (const token of card.pos) score += countCornerMatches(player, token) * Number(card.value || 0);
+      break;
     case "kingdom":
       for (const token of card.pos) score += countInKingdom(player, token) * Number(card.value || 0);
       break;
@@ -586,14 +750,7 @@ function scoreCard(player, card) {
     case "minCount":
       if (countInKingdom(player, card.pos[0]) >= Number(card.threshold || 0)) score += Number(card.value || 0);
       break;
-    case "birdSet": {
-      const n = countInKingdom(player, "Oiseau");
-      score += scoreByCount(state.rules.grandDucScores, n);
-      break;
-    }
     case "heron":
-      if (adj.some(c => c.id === "chevalier")) score += 0;
-      else score -= numericRule("heronPenalty", 3);
       break;
     case "majority":
       break;
@@ -628,6 +785,7 @@ function scoreAll() {
 
 function finishGame(render = true) {
   const g = state.game;
+  applyEndOfGameEffects(g);
   scoreAll();
   g.over = true;
   g.phase = "done";
@@ -638,15 +796,15 @@ function finishGame(render = true) {
 }
 
 function checkImmediate(player) {
-  if (countInKingdom(player, "Roseaux fortifiés") >= immediateThreshold("roseaux")) return immediateLabel("roseaux");
-  if (countInKingdom(player, "Oiseau") >= immediateThreshold("oiseaux")) return immediateLabel("oiseaux");
+  if (immediateEnabled("roseaux") && countInKingdom(player, "Roseaux fortifiés") >= immediateThreshold("roseaux")) return immediateLabel("roseaux");
+  if (immediateEnabled("oiseaux") && countInKingdom(player, "Oiseau") >= immediateThreshold("oiseaux")) return immediateLabel("oiseaux");
   return null;
 }
 
 function cardPotential(card) {
   let v = Number(card.base || 0);
   v += Number(card.floor || 0) || 0;
-  v += Number(card.value || 0) * 1.5;
+  v += Number(card.value || 0) * (card.mode === "majority" ? 0.35 : 1.5);
   if (card.immediate) v += 5;
   if (card.neg?.length) v -= 2;
   if (card.id === "barde") v += Math.max(...state.rules.bardeScores, 0) * 0.3;
@@ -659,8 +817,8 @@ function agentKnownCardScore(player, card, agent) {
   score = placement * 1.4 + cardPotential(card) * 0.35;
   if (agent === "greedy") score = placement;
   if (agent === "combo") {
-    if (card.id === "roseaux" && countInKingdom(player, "Roseaux fortifiés") >= immediateThreshold("roseaux") - 1) score += 100;
-    if (card.type === "Oiseau" && countInKingdom(player, "Oiseau") >= immediateThreshold("oiseaux") - 1) score += 100;
+    if (immediateEnabled("roseaux") && card.id === "roseaux" && countInKingdom(player, "Roseaux fortifiés") >= immediateThreshold("roseaux") - 1) score += 100;
+    if (immediateEnabled("oiseaux") && card.type === "Oiseau" && countInKingdom(player, "Oiseau") >= immediateThreshold("oiseaux") - 1) score += 100;
     for (const c of boardCards(player)) {
       if (c.pos?.some(t => matches(card, t) || card.name === t)) score += 3;
     }
@@ -742,8 +900,39 @@ function countFamily(player, family) {
   return boardCards(player).filter(card => card.type === family).length;
 }
 
+function countBuildingStrategyCards(player) {
+  return boardCards(player).filter(card => card.type === "Bâtiment" || card.id === "temple").length;
+}
+
+function isTreasureStrategyCard(card) {
+  return (card.type === "Objet" && card.id !== "temple") || ["carpographe", "roi", "moine"].includes(card.id);
+}
+
+function countTreasureStrategyObjects(player) {
+  return boardCards(player).filter(card => card.type === "Objet" && card.id !== "temple").length;
+}
+
+function countTreasureStrategyCards(player) {
+  return boardCards(player).filter(isTreasureStrategyCard).length;
+}
+
+function isFrogStrategyCard(card) {
+  return card.type === "Grenouille" || card.id === "revolutionnaire";
+}
+
+function countFrogStrategyCards(player) {
+  return boardCards(player).filter(isFrogStrategyCard).length;
+}
+
 function strategyCardScore(player, item, strategy, offerItems) {
-  if (item.hidden) return estimateHiddenScore(player, "balanced", offerItems);
+  if (item.hidden) {
+    const score = estimateHiddenScore(player, "balanced", offerItems);
+    if (strategy === "treasures") {
+      const currentTreasures = countInKingdom(player, "Carte au trésor");
+      return score + (currentTreasures >= 3 ? 0 : 180 - currentTreasures * 10);
+    }
+    return score;
+  }
   const card = item.card;
   let score = agentKnownCardScore(player, card, "balanced");
   if (strategy === "balanced") return score;
@@ -751,7 +940,7 @@ function strategyCardScore(player, item, strategy, offerItems) {
   if (strategy === "buildings") {
     if (card.type === "Bâtiment") score += 12;
     if (card.id === "architecte") score += 10;
-    if (card.id === "temple") score += countFamily(player, "Bâtiment") >= 3 ? 18 : 8;
+    if (card.id === "temple") score += countFamily(player, "Bâtiment") >= Number(card.threshold || 5) - 2 ? 20 : 9;
     if (card.pos?.includes("Bâtiment")) score += 5;
   }
 
@@ -762,26 +951,30 @@ function strategyCardScore(player, item, strategy, offerItems) {
   }
 
   if (strategy === "treasures") {
-    if (card.type === "Objet") score += 11;
-    if (card.id === "tresor") score += 14;
-    if (["coffre", "carpographe", "roi", "moine"].includes(card.id)) score += 8;
+    const currentTreasures = countInKingdom(player, "Carte au trésor");
+    if (card.id === "tresor") score += currentTreasures >= 3 ? 45 : 220 - currentTreasures * 35;
+    if (card.type === "Objet" && card.id !== "tresor" && card.id !== "temple") score += currentTreasures >= 2 ? 12 : 3;
+    if (card.id === "temple" && card.neg?.length) score -= 18 + countTreasureStrategyObjects(player) * 3;
+    if (card.id === "moine") score += currentTreasures >= 2 ? 24 : 6;
+    if (["coffre", "carpographe", "roi"].includes(card.id)) score += currentTreasures >= 2 ? 8 : 3;
   }
 
   if (strategy === "birds") {
-    if (card.type === "Oiseau") score += countFamily(player, "Oiseau") >= immediateThreshold("oiseaux") - 2 ? 28 : 12;
+    if (card.type === "Oiseau") score += immediateEnabled("oiseaux") && countFamily(player, "Oiseau") >= immediateThreshold("oiseaux") - 2 ? 28 : 12;
     if (card.id === "chevalier") score += 13;
+    if (card.id === "capitaine") score += 14;
     if (card.pos?.includes("Oiseau")) score += 6;
   }
 
   if (strategy === "reeds") {
-    if (card.id === "roseaux") score += countInKingdom(player, "Roseaux fortifiés") >= immediateThreshold("roseaux") - 1 ? 100 : 25;
+    if (card.id === "roseaux") score += 16 + countCornerMatches(player, "Roseaux fortifiés") * 4;
   }
 
   if (strategy === "frogs") {
-    if (card.type === "Grenouille") score += 9;
+    if (isFrogStrategyCard(card)) score += 9;
     if (card.id === "barde") score += Math.max(...state.rules.bardeScores, 0) * 1.2;
     if (card.id === "bouffon") score += countInKingdom(player, "Barde") >= Number(card.threshold || 3) - 1 ? 24 : 10;
-    if (card.id === "revolutionnaire") score += countFamily(player, "Grenouille") >= 3 ? 20 : 6;
+    if (card.id === "revolutionnaire") score += countFamily(player, "Grenouille") >= Number(card.threshold || 5) - 2 ? 24 : 8;
   }
 
   return score;
@@ -818,31 +1011,31 @@ function chooseStrategyHiddenIndex(player, offerCards, strategy) {
 
 function blockingValue(targetPlayer, card, targetStrategy) {
   let value = Math.max(0, strategyCardScore(targetPlayer, { card, idx: 0, hidden: false }, targetStrategy, []) - agentKnownCardScore(targetPlayer, card, "balanced"));
-  if (targetStrategy === "buildings" && card.type === "Bâtiment") value += 8;
+  if (targetStrategy === "buildings" && (card.type === "Bâtiment" || card.id === "temple")) value += 8;
   if (targetStrategy === "nobles" && card.type === "Noble") value += 8;
-  if (targetStrategy === "treasures" && (card.type === "Objet" || ["roi", "moine", "carpographe"].includes(card.id))) value += 8;
-  if (targetStrategy === "frogs" && card.type === "Grenouille") value += 8;
+  if (targetStrategy === "treasures" && isTreasureStrategyCard(card)) value += 8;
+  if (targetStrategy === "frogs" && isFrogStrategyCard(card)) value += 8;
   return value;
 }
 
 function immediateThreatValue(targetPlayer, card) {
   const roseauxCount = countInKingdom(targetPlayer, "Roseaux fortifiés");
   const oiseauxCount = countFamily(targetPlayer, "Oiseau");
-  if (card.id === "roseaux" && roseauxCount >= immediateThreshold("roseaux") - 1) return 1000;
-  if (card.type === "Oiseau" && oiseauxCount >= immediateThreshold("oiseaux") - 1) return 1000;
-  if (card.id === "roseaux" && roseauxCount >= immediateThreshold("roseaux") - 2) return 12;
-  if (card.type === "Oiseau" && oiseauxCount >= immediateThreshold("oiseaux") - 2) return 12;
+  if (immediateEnabled("roseaux") && card.id === "roseaux" && roseauxCount >= immediateThreshold("roseaux") - 1) return 1000;
+  if (immediateEnabled("oiseaux") && card.type === "Oiseau" && oiseauxCount >= immediateThreshold("oiseaux") - 1) return 1000;
+  if (immediateEnabled("roseaux") && card.id === "roseaux" && roseauxCount >= immediateThreshold("roseaux") - 2) return 12;
+  if (immediateEnabled("oiseaux") && card.type === "Oiseau" && oiseauxCount >= immediateThreshold("oiseaux") - 2) return 12;
   return 0;
 }
 
 function inferHumanStrategy(player) {
-  if (countInKingdom(player, "Roseaux fortifiés") >= Math.max(1, immediateThreshold("roseaux") - 2)) return "reeds";
-  if (countFamily(player, "Oiseau") >= Math.max(1, immediateThreshold("oiseaux") - 2)) return "birds";
+  if (countInKingdom(player, "Roseaux fortifiés") >= 2) return "reeds";
+  if (immediateEnabled("oiseaux") && countFamily(player, "Oiseau") >= Math.max(1, immediateThreshold("oiseaux") - 2)) return "birds";
   const families = [
-    ["buildings", countFamily(player, "Bâtiment")],
+    ["buildings", countBuildingStrategyCards(player)],
     ["nobles", countFamily(player, "Noble")],
-    ["treasures", countFamily(player, "Objet")],
-    ["frogs", countFamily(player, "Grenouille")],
+    ["treasures", countTreasureStrategyCards(player)],
+    ["frogs", countFrogStrategyCards(player)],
   ].sort((a, b) => b[1] - a[1]);
   return families[0][1] >= 2 ? families[0][0] : "balanced";
 }
@@ -892,6 +1085,241 @@ function chooseCounterDraftHiddenIndex(hider, offerCards, targetPlayer, targetSt
   return best;
 }
 
+const SIMPLE_PROFILES = {
+  realistic: {
+    label: "Table realiste",
+    strategies: ["birds", "treasures", "buildings", "frogs"],
+    blockImmediate: true,
+    opportunisticBirds: true,
+  },
+  birdHunter: {
+    label: "1 chasseur Oiseaux",
+    strategies: ["birds", "treasures", "buildings", "frogs"],
+    blockImmediate: false,
+    opportunisticBirds: false,
+  },
+  birds: {
+    label: "Tout le monde chasse Oiseaux",
+    strategies: ["birds"],
+    blockImmediate: true,
+    opportunisticBirds: true,
+  },
+  balanced: {
+    label: "Standard",
+    strategies: ["balanced"],
+    blockImmediate: false,
+    opportunisticBirds: false,
+  },
+  combo: {
+    label: "Cherche combos",
+    strategies: ["combo"],
+    blockImmediate: true,
+    opportunisticBirds: true,
+  },
+  random: {
+    label: "Hasard",
+    strategies: ["random"],
+    blockImmediate: false,
+    opportunisticBirds: false,
+  },
+};
+
+function simpleProfileConfig(profile) {
+  return SIMPLE_PROFILES[profile] || SIMPLE_PROFILES.realistic;
+}
+
+function simpleProfileLabel(profile) {
+  return simpleProfileConfig(profile).label;
+}
+
+function simpleProfileStrategies(profile, playersCount) {
+  const config = simpleProfileConfig(profile);
+  if (profile === "realistic" || profile === "birdHunter") {
+    if (playersCount === 2) return ["birds", "treasures"];
+    if (playersCount === 3) return ["birds", "treasures", "frogs"];
+    return ["birds", "treasures", "buildings", "frogs"].slice(0, playersCount);
+  }
+  return Array.from({ length: playersCount }, (_, index) => config.strategies[index % config.strategies.length]);
+}
+
+function profileOfferScore(player, item, strategy, offerItems, profile) {
+  if (strategy === "random") return item.hidden ? estimateHiddenScore(player, "random", offerItems) : cardPotential(item.card);
+  if (strategy === "combo") {
+    const score = item.hidden
+      ? estimateHiddenScore(player, "combo", offerItems)
+      : agentKnownCardScore(player, item.card, "combo");
+    return score + realisticBirdBonus(player, item, profile);
+  }
+  return strategyCardScore(player, item, strategy, offerItems)
+    + realisticBirdBonus(player, item, profile)
+    + dedicatedBirdHunterBonus(player, item, strategy, profile);
+}
+
+function realisticBirdBonus(player, item, profile = "realistic") {
+  if (!simpleProfileConfig(profile).opportunisticBirds || item.hidden || !item.card || !immediateEnabled("oiseaux")) return 0;
+  const currentBirds = countFamily(player, "Oiseau");
+  if (item.card.type === "Oiseau") {
+    if (currentBirds >= immediateThreshold("oiseaux") - 1) return 250;
+    if (currentBirds >= immediateThreshold("oiseaux") - 2) return 52;
+    if (currentBirds >= 1) return 20;
+    return 5;
+  }
+  if (["chevalier", "capitaine"].includes(item.card.id) && currentBirds >= 1) return 9;
+  return 0;
+}
+
+function dedicatedBirdHunterBonus(player, item, strategy, profile) {
+  if (profile !== "birdHunter" || strategy !== "birds" || item.hidden || !item.card) return 0;
+  const currentBirds = countFamily(player, "Oiseau");
+  if (item.card.type === "Oiseau") return 80 + currentBirds * 28;
+  if (["chevalier", "capitaine"].includes(item.card.id) && currentBirds >= 1) return 14;
+  return 0;
+}
+
+function maxOpponentImmediateThreat(players, playerIndex, card) {
+  let threat = 0;
+  for (let i = 0; i < players.length; i++) {
+    if (i === playerIndex) continue;
+    threat = Math.max(threat, immediateThreatValue(players[i], card));
+  }
+  return threat;
+}
+
+function visibleImmediateWinningMove(player, offerItems) {
+  let best = null;
+  let bestScore = -Infinity;
+  for (const item of offerItems) {
+    if (item.hidden || immediateThreatValue(player, item.card) < 1000) continue;
+    const score = agentKnownCardScore(player, item.card, "combo");
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+  return best;
+}
+
+function visibleForcedBlock(players, playerIndex, offerItems, strategy, profile) {
+  let best = null;
+  let bestScore = -Infinity;
+  const player = players[playerIndex];
+  for (const item of offerItems) {
+    if (item.hidden) continue;
+    const threat = maxOpponentImmediateThreat(players, playerIndex, item.card);
+    if (threat < 1000) continue;
+    const ownScore = profileOfferScore(player, item, strategy, offerItems, profile);
+    const score = threat + ownScore;
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+  return best;
+}
+
+function chooseProfileOfferIndex(player, offerItems, strategy, players, playerIndex, profile) {
+  const config = simpleProfileConfig(profile);
+  if (strategy === "random") return chooseOfferIndex(player, offerItems, "random");
+
+  const immediate = visibleImmediateWinningMove(player, offerItems);
+  if (immediate) return immediate.idx;
+
+  if (config.blockImmediate) {
+    const forcedBlock = visibleForcedBlock(players, playerIndex, offerItems, strategy, profile);
+    if (forcedBlock) return forcedBlock.idx;
+  }
+
+  let best = offerItems[0]?.idx ?? 0;
+  let bestScore = -Infinity;
+  for (const item of offerItems) {
+    const ownScore = profileOfferScore(player, item, strategy, offerItems, profile);
+    const softBlock = config.blockImmediate && !item.hidden ? maxOpponentImmediateThreat(players, playerIndex, item.card) * 0.35 : 0;
+    const score = ownScore + softBlock;
+    if (score > bestScore) {
+      bestScore = score;
+      best = item.idx;
+    }
+  }
+  return best;
+}
+
+function chooseProfileHiddenIndex(hider, offerCards, strategy, players, playerIndex, profile) {
+  const config = simpleProfileConfig(profile);
+  if (strategy === "random") return chooseHiddenIndex(hider, offerCards, "random");
+
+  let best = 0;
+  let bestScore = -Infinity;
+  for (let idx = 0; idx < offerCards.length; idx++) {
+    const card = offerCards[idx];
+    const item = { card, idx, hidden: false };
+    const selfUse = profileOfferScore(hider, item, strategy, [], profile);
+    const ownImmediate = immediateThreatValue(hider, card);
+    const opponentThreat = config.blockImmediate ? maxOpponentImmediateThreat(players, playerIndex, card) : 0;
+    const denial = cardPotential(card) + opponentThreat * 0.85;
+    const keepForSelf = ownImmediate >= 1000 ? 140 : (profile === "birdHunter" && strategy === "birds" && card.type === "Oiseau" ? 115 : 0);
+    const score = denial + keepForSelf - selfUse * 0.35;
+    if (score > bestScore) {
+      bestScore = score;
+      best = idx;
+    }
+  }
+  return best;
+}
+
+function simulateProfileGame(playersCount, profile, prep) {
+  const previous = state.game;
+  const deck = prepareDeck(state.cards, playersCount, prep);
+  const strategies = simpleProfileStrategies(profile, playersCount);
+  const players = Array.from({ length: playersCount }, (_, i) => makePlayer(i, false, strategies[i]));
+  state.game = { players, deck, round: 0, active: 0, offer: [], hiddenIndex: -1, hiddenBy: null, pickOrder: [], pickCursor: 0, phase: "draft", pendingPlacement: null, over: false, log: [], profile };
+
+  while (!state.game.over) {
+    const g = state.game;
+    if (g.round >= handSize() || g.deck.length === 0) {
+      finishGame(false);
+      break;
+    }
+    const n = offerSizeForPlayers(playersCount);
+    g.offer = g.deck.splice(0, n);
+    g.hiddenBy = g.active;
+    g.hiddenIndex = chooseProfileHiddenIndex(players[g.active], g.offer, strategies[g.active], players, g.active, profile);
+    if (playersCount === 2) {
+      g.pickOrder = [1 - g.active, g.active];
+    } else {
+      g.pickOrder = [];
+      for (let i = 1; i < playersCount; i++) g.pickOrder.push((g.active + i) % playersCount);
+      g.pickOrder.push(g.active);
+    }
+
+    for (g.pickCursor = 0; g.pickCursor < g.pickOrder.length; g.pickCursor++) {
+      const playerIndex = g.pickOrder[g.pickCursor];
+      const player = players[playerIndex];
+      const idx = chooseProfileOfferIndex(player, visibleOfferForPlayer(playerIndex), strategies[playerIndex], players, playerIndex, profile);
+      const card = g.offer[idx];
+      g.offer.splice(idx, 1);
+      if (g.hiddenIndex === idx) g.hiddenIndex = -1;
+      if (g.hiddenIndex > idx) g.hiddenIndex--;
+      autoPlace(player, card);
+      const immediate = checkImmediate(player);
+      if (immediate) {
+        player.win = immediate;
+        g.over = true;
+        scoreAll();
+        break;
+      }
+    }
+    g.offer = [];
+    g.hiddenIndex = -1;
+    g.round++;
+    g.active = (g.active + 1) % playersCount;
+  }
+
+  scoreAll();
+  const result = summarizeGame(state.game);
+  state.game = previous;
+  return result;
+}
+
 function simulateGame(playersCount, agent, prep) {
   const previous = state.game;
   const deck = prepareDeck(state.cards, playersCount, prep);
@@ -900,7 +1328,7 @@ function simulateGame(playersCount, agent, prep) {
   while (!state.game.over) {
     const g = state.game;
     if (g.round >= handSize() || g.deck.length === 0) { finishGame(false); break; }
-    const n = playersCount === 2 ? 3 : playersCount;
+    const n = offerSizeForPlayers(playersCount);
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = chooseHiddenIndex(players[g.active], g.offer, agent);
@@ -912,16 +1340,11 @@ function simulateGame(playersCount, agent, prep) {
     }
     for (g.pickCursor = 0; g.pickCursor < g.pickOrder.length; g.pickCursor++) {
       const p = players[g.pickOrder[g.pickCursor]];
-      const idx = chooseOfferIndex(p, visibleOffer(), agent);
+      const idx = chooseOfferIndex(p, visibleOfferForPlayer(g.pickOrder[g.pickCursor]), agent);
       const card = g.offer[idx];
       g.offer.splice(idx, 1);
       if (g.hiddenIndex === idx) g.hiddenIndex = -1;
       if (g.hiddenIndex > idx) g.hiddenIndex--;
-      if (playersCount === 2 && g.pickCursor === 1 && g.offer.length > 0) {
-        g.offer.splice(0, 1);
-        if (g.hiddenIndex === 0) g.hiddenIndex = -1;
-        if (g.hiddenIndex > 0) g.hiddenIndex--;
-      }
       autoPlace(p, card);
       const immediate = checkImmediate(p);
       if (immediate) {
@@ -931,6 +1354,8 @@ function simulateGame(playersCount, agent, prep) {
         break;
       }
     }
+    g.offer = [];
+    g.hiddenIndex = -1;
     g.round++;
     g.active = (g.active + 1) % playersCount;
   }
@@ -971,7 +1396,7 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
       finishGame(false);
       break;
     }
-    const n = playersCount === 2 ? 3 : playersCount;
+    const n = offerSizeForPlayers(playersCount);
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = counterDraft && g.active !== 0
@@ -989,17 +1414,12 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
       const playerIndex = g.pickOrder[g.pickCursor];
       const player = players[playerIndex];
       const idx = counterDraft && playerIndex !== 0
-        ? chooseCounterDraftOfferIndex(player, visibleOffer(), players[0], strategy)
-        : chooseStrategyOfferIndex(player, visibleOffer(), strategies[playerIndex]);
+        ? chooseCounterDraftOfferIndex(player, visibleOfferForPlayer(playerIndex), players[0], strategy)
+        : chooseStrategyOfferIndex(player, visibleOfferForPlayer(playerIndex), strategies[playerIndex]);
       const card = g.offer[idx];
       g.offer.splice(idx, 1);
       if (g.hiddenIndex === idx) g.hiddenIndex = -1;
       if (g.hiddenIndex > idx) g.hiddenIndex--;
-      if (playersCount === 2 && g.pickCursor === 1 && g.offer.length > 0) {
-        g.offer.splice(0, 1);
-        if (g.hiddenIndex === 0) g.hiddenIndex = -1;
-        if (g.hiddenIndex > 0) g.hiddenIndex--;
-      }
       autoPlace(player, card);
       const immediate = checkImmediate(player);
       if (immediate) {
@@ -1009,6 +1429,8 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
         break;
       }
     }
+    g.offer = [];
+    g.hiddenIndex = -1;
     g.round++;
     g.active = (g.active + 1) % playersCount;
   }
@@ -1189,6 +1611,7 @@ function summarizeBenchmarkStrategy(strategy, playersCount, games, prep, counter
     winnerGrail: avg(rows.map(r => r.winnerGrail)),
     strategyGrailWinRate: strategyGrailWins / Math.max(1, strategyWins),
     p1Grail: avg(rows.map(r => r.p1Grail)),
+    avgP1Treasures: avg(rows.map(r => r.p1Cards.filter(card => card.id === "tresor").length)),
     immediate: avg(rows.map(r => r.immediate)),
     roseauxImmediate: avg(rows.map(r => r.roseauxImmediate)),
     oiseauxImmediate: avg(rows.map(r => r.oiseauxImmediate)),
@@ -1285,6 +1708,184 @@ function runSimulation() {
 
 function avg(arr) { return arr.reduce((s, x) => s + x, 0) / Math.max(1, arr.length); }
 function pct(x) { return `${(x * 100).toFixed(1)}%`; }
+
+function comb(n, k) {
+  if (k < 0 || k > n) return 0;
+  k = Math.min(k, n - k);
+  let result = 1;
+  for (let i = 1; i <= k; i++) result = result * (n - k + i) / i;
+  return result;
+}
+
+function exactImmediateAvailability(deckTotal, birds, playersCount, handSizeValue = handSize()) {
+  const memo = new Map();
+  function safeProbability(playerIndex, birdsLeft, cardsLeft) {
+    if (playerIndex === playersCount) return 1;
+    const key = `${playerIndex}|${birdsLeft}|${cardsLeft}`;
+    if (memo.has(key)) return memo.get(key);
+    const nonBirdsLeft = cardsLeft - birdsLeft;
+    const denom = comb(cardsLeft, handSizeValue);
+    let safe = 0;
+    for (let birdCount = 0; birdCount <= Math.min(3, birdsLeft, handSizeValue); birdCount++) {
+      const nonBirdCount = handSizeValue - birdCount;
+      if (nonBirdCount > nonBirdsLeft) continue;
+      safe += comb(birdsLeft, birdCount)
+        * comb(nonBirdsLeft, nonBirdCount)
+        / denom
+        * safeProbability(playerIndex + 1, birdsLeft - birdCount, cardsLeft - handSizeValue);
+    }
+    memo.set(key, safe);
+    return safe;
+  }
+  return 1 - safeProbability(0, birds, deckTotal);
+}
+
+function exactAtLeastInDraws(deckTotal, successCount, draws, threshold) {
+  const denom = comb(deckTotal, draws);
+  let probability = 0;
+  for (let count = threshold; count <= Math.min(successCount, draws); count++) {
+    probability += comb(successCount, count) * comb(deckTotal - successCount, draws - count) / denom;
+  }
+  return probability;
+}
+
+function visibleCardsCount(playersCount) {
+  return Math.max(0, cardsDrawnIntoOffers(playersCount) - handSize());
+}
+
+function cardsDrawnIntoOffers(playersCount, handSizeValue = handSize()) {
+  return offerSizeForPlayers(playersCount) * handSizeValue;
+}
+
+function cardsTakenByPlayers(playersCount, handSizeValue = handSize()) {
+  return playersCount * handSizeValue;
+}
+
+function setBirdCount(count) {
+  const heron = state.cards.find(card => card.id === "heron");
+  if (!heron) return;
+  heron.qty = Math.max(0, Math.round(Number(count) || 0));
+  heron.heronTargets = HERON_TARGETS.map(target => target.id);
+  refreshAfterDesignChange({ cards: Boolean(document.querySelector("#cards.active")) });
+}
+
+function levelForImmediate(rate) {
+  if (rate >= 0.10) return "bad";
+  if (rate >= 0.05) return "warn";
+  return "good";
+}
+
+function levelForScore(maxSeen, avgWinner) {
+  if (maxSeen >= 110 || avgWinner >= 90) return "bad";
+  if (maxSeen >= 95 || avgWinner >= 80) return "warn";
+  return "good";
+}
+
+function renderSimpleVerdict(lines) {
+  document.querySelector("#simpleVerdict").innerHTML = lines.map(line => `
+    <div class="simple-line">
+      ${simpleLevel(line.level)}
+      <span>${line.text}</span>
+    </div>
+  `).join("");
+}
+
+function runSimpleStats() {
+  const players = Number(document.querySelector("#simplePlayers").value || 3);
+  const games = Number(document.querySelector("#simpleGames").value || 200);
+  const birds = Number(document.querySelector("#simpleBirds").value || 5);
+  const profile = document.querySelector("#simpleAgent").value || "realistic";
+  const button = document.querySelector("#runSimple");
+  button.disabled = true;
+  button.textContent = "Calcul...";
+  setTimeout(() => {
+    try {
+      setBirdCount(birds);
+      const results = [];
+      for (let i = 0; i < games; i++) results.push(simulateProfileGame(players, profile, "full"));
+      const allScores = results.flatMap(row => row.scores);
+      const winnerScores = results.map(row => row.maxScore);
+      const scoreRanges = results.map(row => row.maxScore - row.minScore);
+      const oiseauxWins = results.reduce((sum, row) => sum + row.oiseauxWin, 0);
+      const grailWins = results.reduce((sum, row) => sum + row.winnerGrail, 0);
+      const tightGames = scoreRanges.filter(range => range <= 10).length;
+      const maxSeen = Math.max(...winnerScores);
+      const avgWinner = avg(winnerScores);
+      const avgAll = avg(allScores);
+      const deckTotal = deckTotalCards();
+      const drawnCards = cardsDrawnIntoOffers(players);
+      const takenCards = cardsTakenByPlayers(players);
+      const visibleCards = visibleCardsCount(players);
+      const hiddenOfferCards = handSize();
+      const discardedCards = Math.max(0, drawnCards - takenCards);
+      const untouchedCards = Math.max(0, deckTotal - drawnCards);
+      const exact = exactImmediateAvailability(deckTotal, birds, players);
+      const offeredFourBirds = exactAtLeastInDraws(deckTotal, birds, drawnCards, 4);
+      const playerCardsWithFourBirds = exactAtLeastInDraws(deckTotal, birds, players * handSize(), 4);
+      const visibleFourBirds = exactAtLeastInDraws(deckTotal, birds, visibleCardsCount(players), 4);
+      const immediateRate = oiseauxWins / games;
+      const tightRate = tightGames / games;
+      const grailRate = grailWins / games;
+
+      const stats = [
+        ["Victoire Oiseaux", pct(immediateRate), levelForImmediate(immediateRate)],
+        ["Sans chasse", pct(exact), levelForImmediate(exact)],
+        ["4+ Oiseaux en offre", pct(offeredFourBirds), offeredFourBirds >= 0.50 ? "warn" : ""],
+        ["4+ Oiseaux pris", pct(playerCardsWithFourBirds), playerCardsWithFourBirds >= 0.50 ? "warn" : ""],
+        ["4+ Oiseaux visibles", pct(visibleFourBirds), visibleFourBirds >= 0.25 ? "warn" : ""],
+        ["Cartes prises", `${takenCards}/${deckTotal}`, ""],
+        ["Cartes visibles", `${visibleCards}/${deckTotal}`, ""],
+        ["Score gagnant moy.", avgWinner.toFixed(1), levelForScore(maxSeen, avgWinner)],
+        ["Score moyen", avgAll.toFixed(1), ""],
+        ["Score max vu", maxSeen.toFixed(0), levelForScore(maxSeen, avgWinner)],
+        ["Graal chez gagnant", pct(grailRate), grailRate > 0.55 ? "warn" : ""],
+        ["Parties serrées", pct(tightRate), tightRate < 0.25 ? "warn" : "good"],
+      ];
+      document.querySelector("#simpleStats").innerHTML = stats.map(([label, value, cls]) => metric(label, value, cls)).join("");
+
+      renderSimpleVerdict([
+        {
+          level: levelForImmediate(immediateRate),
+          text: `Victoire immédiate Oiseaux simulée: ${pct(immediateRate)}. Si personne ne les chasse, la base mathématique est ${pct(exact)}.`,
+        },
+        {
+          level: offeredFourBirds >= 0.50 ? "warn" : "good",
+          text: `${pct(offeredFourBirds)} des parties ont 4+ Oiseaux qui entrent dans les offres, et ${pct(playerCardsWithFourBirds)} les ont dans les cartes prises. Si les joueurs les concentrent, le taux réel peut monter beaucoup plus haut.`,
+        },
+        {
+          level: levelForScore(maxSeen, avgWinner),
+          text: `Score gagnant moyen: ${avgWinner.toFixed(1)} PV. Plus gros score vu: ${maxSeen.toFixed(0)} PV.`,
+        },
+        {
+          level: grailRate > 0.55 ? "warn" : "good",
+          text: `Le gagnant a le Graal dans ${pct(grailRate)} des parties.`,
+        },
+        {
+          level: tightRate < 0.25 ? "warn" : "good",
+          text: `${pct(tightRate)} des parties finissent avec 10 PV ou moins d'écart entre premier et dernier.`,
+        },
+      ]);
+
+      document.querySelector("#simpleTable").innerHTML = `
+        <thead><tr><th>Point regardé</th><th>Résultat</th><th>Lecture</th></tr></thead>
+        <tbody>
+          <tr><td>Configuration</td><td>${players} joueurs, ${birds} Oiseaux, ${deckTotal} cartes, profil ${simpleProfileLabel(profile)}</td><td>${games} parties</td></tr>
+          <tr><td>Contrôle simulation</td><td>${takenCards} cartes prises, ${visibleCards} visibles, ${hiddenOfferCards} cachées dans les offres</td><td>${discardedCards} défaussées, ${untouchedCards} jamais sorties</td></tr>
+          <tr><td>Victoire immédiate Oiseaux</td><td>${oiseauxWins} / ${games}</td><td>${pct(immediateRate)}</td></tr>
+          <tr><td>Sans chasse active</td><td>Au moins un joueur reçoit 4+ Oiseaux</td><td>${pct(exact)}</td></tr>
+          <tr><td>Disponibilité en offre</td><td>4+ Oiseaux entrent dans les offres</td><td>${pct(offeredFourBirds)}</td></tr>
+          <tr><td>Disponibilité prise</td><td>4+ Oiseaux sont dans les cartes prises</td><td>${pct(playerCardsWithFourBirds)}</td></tr>
+          <tr><td>Visibilité publique</td><td>4+ Oiseaux apparaissent face visible</td><td>${pct(visibleFourBirds)}</td></tr>
+          <tr><td>Score gagnant</td><td>${avgWinner.toFixed(1)} PV en moyenne</td><td>max ${maxSeen.toFixed(0)}</td></tr>
+          <tr><td>Écart de score</td><td>${avg(scoreRanges).toFixed(1)} PV en moyenne</td><td>${pct(tightRate)} parties serrées</td></tr>
+          <tr><td>Graal</td><td>${grailWins} gagnants avec Graal</td><td>${pct(grailRate)}</td></tr>
+        </tbody>`;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Lancer les stats";
+    }
+  }, 20);
+}
 
 function renderSimulation() {
   const sim = state.lastSimulation;
@@ -1514,7 +2115,7 @@ function renderSimpleReadout(bench, facts) {
 function renderStrategyTable(bench, baseline) {
   const rows = [...bench.results].sort((a, b) => b.win - a.win);
   document.querySelector("#strategyTable").innerHTML = `
-    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>PV / carte</th><th>Verdict</th></tr></thead>
+    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>Graal obtenu</th><th>Trésors moy.</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>PV / carte</th><th>Verdict</th></tr></thead>
     <tbody>
       ${rows.map(row => {
         const verdict = strategyVerdict(row, baseline);
@@ -1522,6 +2123,8 @@ function renderStrategyTable(bench, baseline) {
           <td>${row.label}</td>
           <td>${pct(row.win)}</td>
           <td>${row.strategyWins > 0 ? pct(row.strategyGrailWinRate) : "-"}</td>
+          <td>${pct(row.p1Grail)}</td>
+          <td>${row.avgP1Treasures.toFixed(1)}</td>
           <td>${row.avgScoreAll.toFixed(1)}</td>
           <td>${row.delta >= 0 ? "+" : ""}${row.delta.toFixed(1)}</td>
           <td>${row.avgMaxScore.toFixed(1)}</td>
@@ -1790,15 +2393,13 @@ function drawGroupedBarChart(selector, title, rows, suffix = "") {
 function normalizeRules(rules = {}) {
   const merged = { ...structuredClone(BASE_RULES), ...rules };
   merged.handSize = Math.max(1, Math.round(Number(merged.handSize) || BASE_RULES.handSize));
-  merged.roseauxImmediate = Math.max(1, Math.round(Number(merged.roseauxImmediate) || BASE_RULES.roseauxImmediate));
-  merged.oiseauxImmediate = Math.max(1, Math.round(Number(merged.oiseauxImmediate) || BASE_RULES.oiseauxImmediate));
+  merged.roseauxImmediate = Number.isFinite(Number(merged.roseauxImmediate)) ? Math.max(0, Math.round(Number(merged.roseauxImmediate))) : BASE_RULES.roseauxImmediate;
+  merged.oiseauxImmediate = Number.isFinite(Number(merged.oiseauxImmediate)) ? Math.max(0, Math.round(Number(merged.oiseauxImmediate))) : BASE_RULES.oiseauxImmediate;
   merged.grailPoints = Number.isFinite(Number(merged.grailPoints)) ? Number(merged.grailPoints) : BASE_RULES.grailPoints;
   merged.grailStrict = merged.grailStrict === true || merged.grailStrict === "true";
   merged.royalPairBonus = Number.isFinite(Number(merged.royalPairBonus)) ? Number(merged.royalPairBonus) : BASE_RULES.royalPairBonus;
   merged.royalKingBonus = Number.isFinite(Number(merged.royalKingBonus)) ? Number(merged.royalKingBonus) : BASE_RULES.royalKingBonus;
-  merged.heronPenalty = Number.isFinite(Number(merged.heronPenalty)) ? Number(merged.heronPenalty) : BASE_RULES.heronPenalty;
   merged.bardeScores = parseScoreList(Array.isArray(merged.bardeScores) ? merged.bardeScores.join("/") : merged.bardeScores, BASE_RULES.bardeScores);
-  merged.grandDucScores = parseScoreList(Array.isArray(merged.grandDucScores) ? merged.grandDucScores.join("/") : merged.grandDucScores, BASE_RULES.grandDucScores);
   return merged;
 }
 
@@ -1813,14 +2414,14 @@ function serializeDesign() {
 
 function loadDesign(data) {
   if (Array.isArray(data)) {
-    state.cards = data;
+    state.cards = migrateCards(data);
     const tresor = state.cards.find(card => card.id === "tresor");
     state.rules = normalizeRules({
       ...BASE_RULES,
       grailPoints: Number.isFinite(Number(tresor?.value)) ? Number(tresor.value) : BASE_RULES.grailPoints,
     });
   } else {
-    state.cards = Array.isArray(data?.cards) ? data.cards : structuredClone(BASE_CARDS);
+    state.cards = migrateCards(Array.isArray(data?.cards) ? data.cards : structuredClone(BASE_CARDS));
     state.rules = normalizeRules(data?.rules || BASE_RULES);
   }
   syncMajorityCardFromRules();
@@ -1841,8 +2442,8 @@ function renderRulesEditor() {
     <label>Cartes / joueur
       <input data-rule="handSize" type="number" min="1" max="30" step="1" value="${handSize()}">
     </label>
-    <label>Victoire Roseaux
-      <input data-rule="roseauxImmediate" type="number" min="1" max="12" step="1" value="${immediateThreshold("roseaux")}">
+    <label>Victoire Roseaux (0 = inactive)
+      <input data-rule="roseauxImmediate" type="number" min="0" max="12" step="1" value="${immediateThreshold("roseaux")}">
     </label>
     <label>Victoire Oiseaux
       <input data-rule="oiseauxImmediate" type="number" min="1" max="12" step="1" value="${immediateThreshold("oiseaux")}">
@@ -1856,14 +2457,8 @@ function renderRulesEditor() {
     <label>Prince-Roi
       <input data-rule="royalKingBonus" type="number" step="1" value="${numericRule("royalKingBonus", BASE_RULES.royalKingBonus)}">
     </label>
-    <label>Malus Héron seul
-      <input data-rule="heronPenalty" type="number" min="0" step="1" value="${numericRule("heronPenalty", BASE_RULES.heronPenalty)}">
-    </label>
     <label>Barde 1/2/3/4/5+
       <input data-rule-list="bardeScores" type="text" value="${formatScoreList(state.rules.bardeScores)}">
-    </label>
-    <label>Grand Duc 1/2/3+
-      <input data-rule-list="grandDucScores" type="text" value="${formatScoreList(state.rules.grandDucScores)}">
     </label>
     <label class="check-control">
       <input data-rule="grailStrict" type="checkbox" ${state.rules.grailStrict ? "checked" : ""}>
@@ -2012,7 +2607,7 @@ function renderOffer() {
   }
   if (!g || g.phase !== "draft" || g.over) return;
   const picker = currentPicker();
-  offer.innerHTML = visibleOffer().map(item => {
+  offer.innerHTML = visibleOfferForPlayer(picker?.index).map(item => {
     const label = item.hidden ? "Carte cachée" : item.card.name;
     const disabled = !picker?.human ? "disabled" : "";
     return `<div class="card">
@@ -2064,10 +2659,18 @@ function renderBoards() {
       for (let gx = 0; gx < renderW; gx++) {
         const x = originX + gx;
         const y = originY + gy;
-        const card = getBoardCard(player, x, y);
+        const entry = getBoardEntry(player, x, y, { includeDestroyed: true });
+        const card = entry?.card || null;
         const playable = legal.some(p => p.x === x && p.y === y);
         let content = "";
-        if (card) {
+        if (card && entry.destroyed) {
+          content = `<div class="cell-name">${card.name}</div>
+            <div class="cell-line">
+              <span class="cell-type ${normalizeId(card.type)}">${card.type}</span>
+              <span class="cell-score">0 PV</span>
+            </div>
+            <div class="cell-effect">Détruite par un Héron.</div>`;
+        } else if (card) {
           const summary = cardSummaryInBoard(player, card);
           content = `<div class="cell-name">${card.name}</div>
             <div class="cell-line">
@@ -2080,7 +2683,7 @@ function renderBoards() {
           const sign = preview > 0 ? "+" : "";
           content = `<div class="cell-preview">Poser ici</div><div class="cell-score">${sign}${preview} PV</div>`;
         }
-        cells.push(`<div class="cell ${card ? "" : "empty"} ${playable ? "playable" : ""}" data-player="${player.index}" data-x="${x}" data-y="${y}">${content}</div>`);
+        cells.push(`<div class="cell ${card ? "" : "empty"} ${entry?.destroyed ? "destroyed" : ""} ${playable ? "playable" : ""}" data-player="${player.index}" data-x="${x}" data-y="${y}">${content}</div>`);
       }
     }
     return `<div class="board-panel">
@@ -2114,6 +2717,7 @@ function bindUI() {
     });
   });
   document.querySelector("#newGame").addEventListener("click", () => {
+    setBirdCount(Number(document.querySelector("#playBirds")?.value || 5));
     newGame(
       Number(document.querySelector("#playPlayers").value),
       document.querySelector("#playAgent").value,
@@ -2125,6 +2729,7 @@ function bindUI() {
     if (!state.game) return;
     proceedAgents();
   });
+  document.querySelector("#runSimple").addEventListener("click", runSimpleStats);
   document.querySelector("#runSim").addEventListener("click", runSimulation);
   document.querySelector("#runBenchmark").addEventListener("click", runBenchmark);
   document.querySelector("#quickBenchmark").addEventListener("click", () => {
@@ -2135,6 +2740,7 @@ function bindUI() {
   });
   document.querySelector("#resetCards").addEventListener("click", () => {
     state.cards = structuredClone(BASE_CARDS);
+    state.cards = migrateCards(state.cards);
     state.rules = structuredClone(BASE_RULES);
     syncMajorityCardFromRules();
     renderRulesEditor();
@@ -2145,7 +2751,7 @@ function bindUI() {
     const blob = new Blob([JSON.stringify(serializeDesign(), null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "etang-du-roi-v5-reglages.json";
+    a.download = "etang-du-roi-v8-reglages.json";
     a.click();
     URL.revokeObjectURL(a.href);
   });
