@@ -18,46 +18,47 @@ const HERON_TARGETS = [
   { id: "bottomLeft", label: "coin bas gauche", relX: 0, relY: BOARD_H - 1 },
   { id: "bottomRight", label: "coin bas droit", relX: BOARD_W - 1, relY: BOARD_H - 1 },
   { id: "centerLeft", label: "centre gauche", relX: 1, relY: 1 },
-  { id: "centerRight", label: "centre droite", relX: 2, relY: 1 },
 ];
 
-const BASE_CARDS = [
-  { id: "tresor", name: "Carte au trésor", qty: 5, type: "Objet", base: 3, mode: "majority", pos: ["Trésor"], neg: [], value: 10, text: "3 PV. Majorité stricte aux Cartes au trésor: Graal +10 global." },
-  { id: "barde", name: "Barde", qty: 7, type: "Grenouille", base: 0, mode: "set", pos: ["Barde"], neg: [], value: 0, text: "1/2/3/4/5+ Bardes: 10/6/3/1/0 par Barde." },
-  { id: "chevalier", name: "Chevalier", qty: 3, type: "Grenouille", base: 3, mode: "adjacent", pos: ["Oiseau"], neg: [], value: 5, antiHeron: true, text: "+5 par Oiseau adjacent. Annule l'effet d'un Héron adjacent." },
-  { id: "capitaine", name: "Capitaine", qty: 1, type: "Noble", base: 4, mode: "adjacent", pos: ["Oiseau"], neg: [], value: 4, antiHeron: true, text: "+4 par Oiseau adjacent. Annule l'effet d'un Héron adjacent." },
-  { id: "roseaux", name: "Roseaux fortifiés", qty: 5, type: "Bâtiment", base: 2, mode: "cornerSet", pos: ["Roseaux fortifiés"], neg: [], value: 3, text: "+3 par Roseaux fortifiés placé dans un coin du royaume." },
-  { id: "coffre", name: "Coffre", qty: 1, type: "Objet", base: 0, floor: 3, mode: "kingdom", pos: ["Objet"], neg: [], value: 3, text: "+3 par Objet dans le royaume." },
-  { id: "moulin", name: "Moulin", qty: 1, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Paysan", "Grange"], neg: [], value: 4, text: "+4 par Paysan et Grange." },
-  { id: "carpographe", name: "Carpographe", qty: 1, type: "Noble", base: 3, mode: "kingdom", pos: ["Carte au trésor"], neg: [], value: 3, text: "+3 par Carte au trésor." },
-  { id: "prince", name: "Prince", qty: 1, type: "Noble", base: 4, mode: "presence", pos: ["Princesse", "Roi"], neg: [], value: 0, text: "+6 si Princesse, +4 si Roi." },
-  { id: "princesse", name: "Princesse", qty: 1, type: "Noble", base: 4, mode: "presence", pos: ["Prince", "Roi"], neg: [], value: 0, text: "+6 si Prince, +4 si Roi." },
-  { id: "heron", name: "Héron", qty: 5, type: "Oiseau", base: 5, mode: "heron", pos: [], neg: [], value: 0, immediate: "oiseaux", heronTargets: HERON_TARGETS.map(target => target.id), text: "5 PV. En fin de partie, détruit sa case marquée sauf si Chevalier ou Capitaine adjacent. Victoire si 4 Oiseaux." },
-  { id: "paysan", name: "Paysan", qty: 3, type: "Grenouille", base: 0, mode: "kingdom", pos: ["Algues"], neg: [], value: 4, text: "+4 par Algues." },
-  { id: "algues", name: "Algues", qty: 3, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Grenouille"], neg: [], value: 4, text: "+4 par Grenouille adjacente." },
-  { id: "roi", name: "Roi", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Carte au trésor", "Noble"], neg: [], value: 2, text: "+2 par Trésor et Noble." },
-  { id: "donjon", name: "Donjon", qty: 1, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Noble", "Oiseau"], neg: [], value: 4, text: "+4 par Noble/Oiseau adjacent." },
-  { id: "dame_lac", name: "Dame du lac", qty: 1, type: "Noble", base: 2, mode: "adjacent", pos: ["Objet", "Noble"], neg: [], value: 3, text: "+3 par Objet/Noble adjacent." },
-  { id: "bouffon", name: "Bouffon", qty: 1, type: "Grenouille", base: 0, mode: "minCount", pos: ["Barde"], neg: [], value: 20, threshold: 3, text: "+20 si 3+ Bardes." },
-  { id: "pont_levis", name: "Pont-levis", qty: 1, type: "Bâtiment", base: 0, mode: "adjacent", pos: ["Bâtiment"], neg: [], value: 4, text: "+4 par Bâtiment adjacent." },
-  { id: "grange", name: "Grange", qty: 2, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Paysan", "Algues"], neg: [], value: 3, text: "+3 par Paysan et Algues." },
-  { id: "nenuphar", name: "Nénuphar", qty: 1, type: "Bâtiment", base: 0, mode: "kingdom", pos: ["Grenouille"], neg: [], value: 3, text: "+3 par Grenouille." },
-  { id: "architecte", name: "Architecte", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Bâtiment"], neg: [], value: 2, text: "+2 par Bâtiment." },
-  { id: "revolutionnaire", name: "Révolutionnaire", qty: 1, type: "Grenouille", base: 0, mode: "threshold", pos: ["Grenouille"], neg: [], value: 12, negValue: 0, threshold: 5, text: "+12 si 5+ Grenouilles." },
-  { id: "forum", name: "Forum", qty: 1, type: "Bâtiment", base: 4, mode: "position", pos: ["Centre"], neg: [], value: 5, text: "+5 si case centrale." },
-  { id: "magicien", name: "Magicien", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Héron"], neg: [], value: 15, negValue: 0, threshold: 3, text: "+15 si 3+ Hérons." },
-  { id: "moine", name: "Moine", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Carte au trésor"], neg: [], value: 15, negValue: 0, threshold: 2, text: "+15 si 2+ Cartes au trésor." },
-  { id: "temple", name: "Temple", qty: 1, type: "Objet", base: 0, mode: "threshold", pos: ["Bâtiment"], neg: [], value: 15, negValue: 0, threshold: 4, text: "+15 si 4+ Bâtiments." },
-  { id: "antiquaire", name: "Antiquaire", qty: 1, type: "Grenouille", base: 0, mode: "adjacent", pos: ["Objet"], neg: [], value: 5, text: "+5 par Objet adjacent." },
-];
+const V14_TYPE_LABELS = { Batiment: "Bâtiment" };
+const V14_TOKEN_LABELS = {
+  Batiment: "Bâtiment",
+  "Carte au tresor": "Carte au trésor",
+  "Roseaux fortifies": "Roseaux fortifiés",
+};
+const V14_CARD_NAMES = {
+  tresor: "Carte au trésor",
+  roseaux: "Roseaux fortifiés",
+  heron: "Héron",
+  revolutionnaire: "Révolutionnaire",
+  nenuphar: "Nénuphar",
+  temple: "Temple",
+  gros_oeuf: "Gros Œuf",
+};
+
+function simulatorV14Card(card) {
+  const mode = card.mode === "barde" ? "set" : card.mode === "royal" ? "presence" : card.mode;
+  return {
+    ...structuredClone(card),
+    name: V14_CARD_NAMES[card.id] || card.name,
+    type: V14_TYPE_LABELS[card.type] || card.type,
+    mode,
+    pos: (card.pos || []).map(token => V14_TOKEN_LABELS[token] || token),
+    neg: (card.neg || []).map(token => V14_TOKEN_LABELS[token] || token),
+    heronTargets: mode === "heron" && card.heronTarget ? [card.heronTarget] : [...(card.heronTargets || [])],
+  };
+}
+
+const BASE_CARDS = (globalThis.EtangGame?.CARDS || []).map(simulatorV14Card);
+if (!BASE_CARDS.length) throw new Error("Le catalogue V14 n'a pas pu être chargé.");
 
 const BASE_DECK_TOTAL = BASE_CARDS.reduce((sum, card) => sum + Number(card.qty || 0), 0);
 
 const PENALTY_FREE_CARD_TEXT = {
-  revolutionnaire: "+12 si 5+ Grenouilles.",
-  magicien: "+15 si 3+ Hérons.",
+  revolutionnaire: "+15 si 5+ Grenouilles.",
+  magicien: "+15 si 2+ Oiseaux.",
   moine: "+15 si 2+ Cartes au trésor.",
-  temple: "+15 si 4+ Bâtiments.",
+  temple: "+15 si 5+ Bâtiments.",
 };
 
 function removePerCardPenalty(card) {
@@ -96,7 +97,7 @@ const COMBO_RULES = [
   { id: "tresors_moteur", label: "Tresors + moteur", test: deck => deck.ids.tresor >= 2 && (deck.ids.coffre >= 1 || deck.ids.carpographe >= 1 || deck.ids.roi >= 1 || deck.ids.moine >= 1) },
   { id: "grenouilles_revolutionnaire", label: "Grenouilles + Revolutionnaire", test: deck => deck.ids.revolutionnaire >= 1 && deck.families.grenouille >= 5 },
   { id: "batiments_moteur", label: "Batiments + moteur", test: deck => deck.families.batiment >= 5 && (deck.ids.architecte >= 1 || deck.ids.temple >= 1) },
-  { id: "herons_magicien", label: "Hérons + Magicien", test: deck => deck.ids.magicien >= 1 && deck.ids.heron >= 3 },
+  { id: "oiseaux_magicienne", label: "Oiseaux + Magicienne", test: deck => deck.ids.magicien >= 1 && deck.families.oiseau >= 2 },
 ];
 
 function numericRule(key, fallback = BASE_RULES[key]) {
@@ -174,10 +175,13 @@ function cardRulesText(card) {
   if (card.id === "princesse") {
     return `${signedNumber(numericRule("royalPairBonus", 6))} si Prince, ${signedNumber(numericRule("royalKingBonus", 4))} si Roi.`;
   }
-  if (card.id === "heron") {
+  if (card.mode === "grandDuc") {
+    return `1/2/3+ Oiseaux: ${formatScoreList(card.birdScores || [10, 5, 0])} PV.`;
+  }
+  if (card.mode === "heron") {
     const target = heronTargetLabel(card);
-    const targetText = target ? ` Détruit: ${target}.` : " Les exemplaires ciblent les 4 coins puis les deux cases centrales.";
-    return `5 PV.${targetText} Annulé par Chevalier/Capitaine adjacent. Victoire si ${immediateLabel("oiseaux")}.`;
+    const targetText = target ? ` Détruit: ${target}.` : " Les exemplaires ciblent les cases indiquées.";
+    return `${Number(card.base || 0)} PV.${targetText} Annulé par Chevalier/Capitaine adjacent. Victoire si ${immediateLabel("oiseaux")}.`;
   }
   let text = card.text || "Effet non renseigné.";
   if (card.immediate === "roseaux") text = text.replace(/4 Roseaux/g, immediateLabel("roseaux"));
@@ -205,33 +209,37 @@ function migrateCards(cards) {
   return cards.map(card => {
     if (card.id === "chevalier") return { ...card, antiHeron: true };
     if (card.id === "capitaine") return { ...card, antiHeron: true };
-    if (card.id === "heron") return {
+    if (card.mode === "heron") return {
       ...card,
-      qty: Number(card.qty || 0) || 5,
+      qty: Math.max(0, Number(card.qty || 0)),
       type: "Oiseau",
-      base: Number(card.base || 0) || 5,
+      base: Number(card.base || 0),
       mode: "heron",
       immediate: "oiseaux",
-      heronTargets: HERON_TARGETS.map(target => target.id),
+      heronTargets: card.heronTargets?.length
+        ? [...card.heronTargets]
+        : card.heronTarget
+          ? [card.heronTarget]
+          : HERON_TARGETS.map(target => target.id),
     };
     if (["revolutionnaire", "magicien", "moine"].includes(card.id)) return removePerCardPenalty(card);
     if (card.id !== "temple") return card;
     return removePerCardPenalty({
       ...card,
       name: "Temple",
-      type: "Objet",
+      type: "Bâtiment",
       mode: "threshold",
       pos: ["Bâtiment"],
       value: Number(card.value || 0) || 15,
-      threshold: Number(card.threshold || 0) || 4,
+      threshold: Number(card.threshold || 0) || 5,
     });
   });
 }
 
 function cloneCard(card, copyIndex = 0) {
   const copy = { ...card, uid: `${card.id}-${copyIndex}-${Math.random().toString(36).slice(2)}`, copyIndex };
-  if (card.id === "heron") {
-    copy.heronTarget = card.heronTargets?.[copyIndex] || HERON_TARGETS[copyIndex % HERON_TARGETS.length].id;
+  if (card.mode === "heron") {
+    copy.heronTarget = card.heronTarget || card.heronTargets?.[copyIndex] || HERON_TARGETS[copyIndex % HERON_TARGETS.length].id;
   }
   return copy;
 }
@@ -369,6 +377,7 @@ function hideOfferCard(offerIdx) {
   const g = state.game;
   if (!g || g.phase !== "hide" || offerIdx < 0 || offerIdx >= g.offer.length) return;
   g.hiddenIndex = offerIdx;
+  recordHiddenOffer(g);
   log(`${g.players[g.active].name} met une carte face cachee.`);
   beginDraftPick();
 }
@@ -415,12 +424,43 @@ function visibleOfferForPlayer(playerIndex = null) {
   }));
 }
 
+function createDraftStats() {
+  return {
+    hiddenOffered: 0,
+    hiddenTaken: 0,
+    hiddenTakenByHider: 0,
+    unknownHiddenOpportunities: 0,
+    unknownHiddenTaken: 0,
+  };
+}
+
+function draftStats(game) {
+  if (!game.draftStats) game.draftStats = createDraftStats();
+  return game.draftStats;
+}
+
+function recordHiddenOffer(game) {
+  draftStats(game).hiddenOffered++;
+}
+
+function recordOfferTake(game, playerIndex, offerIndex) {
+  const stats = draftStats(game);
+  const wasHidden = game.hiddenIndex === offerIndex;
+  const unknownHiddenAvailable = game.hiddenIndex >= 0 && game.hiddenBy !== playerIndex;
+  if (unknownHiddenAvailable) stats.unknownHiddenOpportunities++;
+  if (!wasHidden) return;
+  stats.hiddenTaken++;
+  if (game.hiddenBy === playerIndex) stats.hiddenTakenByHider++;
+  else stats.unknownHiddenTaken++;
+}
+
 function takeOffer(offerIdx) {
   const g = state.game;
   const player = currentPicker();
   const card = g.offer[offerIdx];
   const offerBefore = g.offer.slice();
   const hiddenBefore = g.hiddenIndex;
+  recordOfferTake(g, player.index, offerIdx);
   g.offer.splice(offerIdx, 1);
   if (g.hiddenIndex === offerIdx) g.hiddenIndex = -1;
   if (g.hiddenIndex > offerIdx) g.hiddenIndex--;
@@ -620,7 +660,7 @@ function applyHeronDestruction(player) {
   const bounds = boardBounds(player);
   if (!bounds) return [];
   const toDestroy = new Map();
-  const herons = boardEntries(player).filter(cell => cell.card.id === "heron");
+  const herons = boardEntries(player).filter(cell => cell.card.mode === "heron");
   for (const heron of herons) {
     if (isHeronBlocked(player, heron)) continue;
     const target = heronTargetCoord(bounds, heron.card.heronTarget);
@@ -657,7 +697,7 @@ function applyEndOfGameEffects(game) {
   }
   game.heronDestructionApplied = true;
   if (game.heronDestructions.length) {
-    log(`Hérons: ${game.heronDestructions.length} carte(s) détruite(s) avant scoring.`);
+    log(`Oiseaux: ${game.heronDestructions.length} carte(s) détruite(s) avant scoring.`);
   }
 }
 
@@ -750,6 +790,9 @@ function scoreCard(player, card) {
     case "minCount":
       if (countInKingdom(player, card.pos[0]) >= Number(card.threshold || 0)) score += Number(card.value || 0);
       break;
+    case "grandDuc":
+      score += scoreByCount(card.birdScores || [10, 5, 0], countInKingdom(player, "Oiseau"));
+      break;
     case "heron":
       break;
     case "majority":
@@ -808,6 +851,7 @@ function cardPotential(card) {
   if (card.immediate) v += 5;
   if (card.neg?.length) v -= 2;
   if (card.id === "barde") v += Math.max(...state.rules.bardeScores, 0) * 0.3;
+  if (card.mode === "grandDuc") v += Math.max(...(card.birdScores || [10, 5, 0]), 0) * 0.6;
   return v;
 }
 
@@ -850,7 +894,7 @@ function estimateHiddenScore(player, agent, visibleItems) {
     total += cardPotential(card) * qty;
     weight += qty;
   }
-  const uncertaintyPenalty = agent === "random" ? 0 : 1.5;
+  const uncertaintyPenalty = agent === "random" ? 0 : 3.5;
   return weight ? (total / weight) - uncertaintyPenalty : 0;
 }
 
@@ -926,12 +970,7 @@ function countFrogStrategyCards(player) {
 
 function strategyCardScore(player, item, strategy, offerItems) {
   if (item.hidden) {
-    const score = estimateHiddenScore(player, "balanced", offerItems);
-    if (strategy === "treasures") {
-      const currentTreasures = countInKingdom(player, "Carte au trésor");
-      return score + (currentTreasures >= 3 ? 0 : 180 - currentTreasures * 10);
-    }
-    return score;
+    return estimateHiddenScore(player, "balanced", offerItems);
   }
   const card = item.card;
   let score = agentKnownCardScore(player, card, "balanced");
@@ -1283,6 +1322,7 @@ function simulateProfileGame(playersCount, profile, prep) {
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = chooseProfileHiddenIndex(players[g.active], g.offer, strategies[g.active], players, g.active, profile);
+    recordHiddenOffer(g);
     if (playersCount === 2) {
       g.pickOrder = [1 - g.active, g.active];
     } else {
@@ -1296,6 +1336,7 @@ function simulateProfileGame(playersCount, profile, prep) {
       const player = players[playerIndex];
       const idx = chooseProfileOfferIndex(player, visibleOfferForPlayer(playerIndex), strategies[playerIndex], players, playerIndex, profile);
       const card = g.offer[idx];
+      recordOfferTake(g, playerIndex, idx);
       g.offer.splice(idx, 1);
       if (g.hiddenIndex === idx) g.hiddenIndex = -1;
       if (g.hiddenIndex > idx) g.hiddenIndex--;
@@ -1332,6 +1373,7 @@ function simulateGame(playersCount, agent, prep) {
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = chooseHiddenIndex(players[g.active], g.offer, agent);
+    recordHiddenOffer(g);
     if (playersCount === 2) g.pickOrder = [1 - g.active, g.active];
     else {
       g.pickOrder = [];
@@ -1342,6 +1384,7 @@ function simulateGame(playersCount, agent, prep) {
       const p = players[g.pickOrder[g.pickCursor]];
       const idx = chooseOfferIndex(p, visibleOfferForPlayer(g.pickOrder[g.pickCursor]), agent);
       const card = g.offer[idx];
+      recordOfferTake(g, p.index, idx);
       g.offer.splice(idx, 1);
       if (g.hiddenIndex === idx) g.hiddenIndex = -1;
       if (g.hiddenIndex > idx) g.hiddenIndex--;
@@ -1367,6 +1410,7 @@ function simulateGame(playersCount, agent, prep) {
 
 function summarizeGame(g) {
   const scores = g.players.map(p => p.score);
+  const hiddenStats = { ...draftStats(g) };
   const immediateWinner = g.players.find(p => isImmediateWin(p.win));
   const bestScore = Math.max(...scores);
   const scoreWinners = g.players.filter(p => p.score === bestScore);
@@ -1380,6 +1424,7 @@ function summarizeGame(g) {
     oiseauxWin: isOiseauxWin(immediateWinner?.win) ? 1 : 0,
     winnerGrail: winners.some(p => p.grail) ? 1 : 0,
     firstScore: g.players[0].score,
+    draftStats: hiddenStats,
   };
 }
 
@@ -1402,6 +1447,7 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
     g.hiddenIndex = counterDraft && g.active !== 0
       ? chooseCounterDraftHiddenIndex(players[g.active], g.offer, players[0], strategy)
       : chooseStrategyHiddenIndex(players[g.active], g.offer, strategies[g.active]);
+    recordHiddenOffer(g);
     if (playersCount === 2) {
       g.pickOrder = [1 - g.active, g.active];
     } else {
@@ -1417,6 +1463,7 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
         ? chooseCounterDraftOfferIndex(player, visibleOfferForPlayer(playerIndex), players[0], strategy)
         : chooseStrategyOfferIndex(player, visibleOfferForPlayer(playerIndex), strategies[playerIndex]);
       const card = g.offer[idx];
+      recordOfferTake(g, playerIndex, idx);
       g.offer.splice(idx, 1);
       if (g.hiddenIndex === idx) g.hiddenIndex = -1;
       if (g.hiddenIndex > idx) g.hiddenIndex--;
@@ -1468,6 +1515,7 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
     winnerIndexes,
     playerCards,
     winningCards,
+    draftStats: { ...draftStats(state.game) },
   };
   state.game = previous;
   return result;
@@ -1583,6 +1631,8 @@ function summarizeBenchmarkStrategy(strategy, playersCount, games, prep, counter
   const oiseauxImmediateCount = rows.reduce((sum, r) => sum + r.oiseauxImmediate + r.oppOiseauxImmediate, 0);
   const strategyWins = rows.reduce((sum, r) => sum + r.win, 0);
   const strategyGrailWins = rows.reduce((sum, r) => sum + r.p1GrailWin, 0);
+  const unknownHiddenOpportunities = rows.reduce((sum, r) => sum + Number(r.draftStats?.unknownHiddenOpportunities || 0), 0);
+  const unknownHiddenTaken = rows.reduce((sum, r) => sum + Number(r.draftStats?.unknownHiddenTaken || 0), 0);
 
   return {
     id: strategy.id,
@@ -1608,6 +1658,9 @@ function summarizeBenchmarkStrategy(strategy, playersCount, games, prep, counter
     soloWin: avg(rows.map(r => r.soloWin)),
     strategyWins,
     strategyGrailWins,
+    unknownHiddenOpportunities,
+    unknownHiddenTaken,
+    unknownHiddenTakeRate: unknownHiddenTaken / Math.max(1, unknownHiddenOpportunities),
     winnerGrail: avg(rows.map(r => r.winnerGrail)),
     strategyGrailWinRate: strategyGrailWins / Math.max(1, strategyWins),
     p1Grail: avg(rows.map(r => r.p1Grail)),
@@ -1762,10 +1815,15 @@ function cardsTakenByPlayers(playersCount, handSizeValue = handSize()) {
 }
 
 function setBirdCount(count) {
-  const heron = state.cards.find(card => card.id === "heron");
-  if (!heron) return;
-  heron.qty = Math.max(0, Math.round(Number(count) || 0));
-  heron.heronTargets = HERON_TARGETS.map(target => target.id);
+  const birds = state.cards.filter(card => card.mode === "heron");
+  if (!birds.length) return;
+  const total = Math.max(0, Math.round(Number(count) || 0));
+  const copiesPerBird = Math.floor(total / birds.length);
+  const extraCopies = total % birds.length;
+  birds.forEach((bird, index) => {
+    bird.qty = copiesPerBird + (index < extraCopies ? 1 : 0);
+    bird.heronTargets = bird.heronTarget ? [bird.heronTarget] : bird.heronTargets;
+  });
   refreshAfterDesignChange({ cards: Boolean(document.querySelector("#cards.active")) });
 }
 
@@ -1808,6 +1866,8 @@ function runSimpleStats() {
       const scoreRanges = results.map(row => row.maxScore - row.minScore);
       const oiseauxWins = results.reduce((sum, row) => sum + row.oiseauxWin, 0);
       const grailWins = results.reduce((sum, row) => sum + row.winnerGrail, 0);
+      const unknownHiddenOpportunities = results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenOpportunities || 0), 0);
+      const unknownHiddenTaken = results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenTaken || 0), 0);
       const tightGames = scoreRanges.filter(range => range <= 10).length;
       const maxSeen = Math.max(...winnerScores);
       const avgWinner = avg(winnerScores);
@@ -1826,6 +1886,7 @@ function runSimpleStats() {
       const immediateRate = oiseauxWins / games;
       const tightRate = tightGames / games;
       const grailRate = grailWins / games;
+      const unknownHiddenTakeRate = unknownHiddenTaken / Math.max(1, unknownHiddenOpportunities);
 
       const stats = [
         ["Victoire Oiseaux", pct(immediateRate), levelForImmediate(immediateRate)],
@@ -1839,6 +1900,7 @@ function runSimpleStats() {
         ["Score moyen", avgAll.toFixed(1), ""],
         ["Score max vu", maxSeen.toFixed(0), levelForScore(maxSeen, avgWinner)],
         ["Graal chez gagnant", pct(grailRate), grailRate > 0.55 ? "warn" : ""],
+        ["Cachée prise à l'aveugle", pct(unknownHiddenTakeRate), unknownHiddenTakeRate > 0.30 ? "warn" : "good"],
         ["Parties serrées", pct(tightRate), tightRate < 0.25 ? "warn" : "good"],
       ];
       document.querySelector("#simpleStats").innerHTML = stats.map(([label, value, cls]) => metric(label, value, cls)).join("");
@@ -1861,6 +1923,10 @@ function runSimpleStats() {
           text: `Le gagnant a le Graal dans ${pct(grailRate)} des parties.`,
         },
         {
+          level: unknownHiddenTakeRate > 0.30 ? "warn" : "good",
+          text: `Les IA prennent une carte cachée qu'elles n'ont pas préparée dans ${pct(unknownHiddenTakeRate)} des occasions (${unknownHiddenTaken}/${unknownHiddenOpportunities}).`,
+        },
+        {
           level: tightRate < 0.25 ? "warn" : "good",
           text: `${pct(tightRate)} des parties finissent avec 10 PV ou moins d'écart entre premier et dernier.`,
         },
@@ -1879,6 +1945,7 @@ function runSimpleStats() {
           <tr><td>Score gagnant</td><td>${avgWinner.toFixed(1)} PV en moyenne</td><td>max ${maxSeen.toFixed(0)}</td></tr>
           <tr><td>Écart de score</td><td>${avg(scoreRanges).toFixed(1)} PV en moyenne</td><td>${pct(tightRate)} parties serrées</td></tr>
           <tr><td>Graal</td><td>${grailWins} gagnants avec Graal</td><td>${pct(grailRate)}</td></tr>
+          <tr><td>Choix caché à l'aveugle</td><td>${unknownHiddenTaken} prises sur ${unknownHiddenOpportunities} occasions</td><td>${pct(unknownHiddenTakeRate)}</td></tr>
         </tbody>`;
     } finally {
       button.disabled = false;
@@ -1894,6 +1961,8 @@ function renderSimulation() {
   const roseaux = sim.results.reduce((s, r) => s + r.roseauxWin, 0);
   const oiseaux = sim.results.reduce((s, r) => s + r.oiseauxWin, 0);
   const winnerGrail = sim.results.reduce((s, r) => s + r.winnerGrail, 0);
+  const hiddenOpportunities = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenOpportunities || 0), 0);
+  const hiddenTaken = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenTaken || 0), 0);
   const scores = sim.results.flatMap(r => r.scores);
   const summary = [
     ["Parties", sim.games, "good"],
@@ -1902,6 +1971,7 @@ function renderSimulation() {
     ["Roseaux", pct(roseaux / sim.games), roseaux ? "warn" : ""],
     ["Oiseaux", pct(oiseaux / sim.games), oiseaux ? "warn" : ""],
     ["Gagnant Graal", pct(winnerGrail / sim.games), ""],
+    ["Cachée à l'aveugle", pct(hiddenTaken / Math.max(1, hiddenOpportunities)), hiddenTaken / Math.max(1, hiddenOpportunities) > 0.30 ? "warn" : "good"],
     ["Score max moyen", avg(sim.results.map(r => r.maxScore)).toFixed(1), ""],
   ];
   document.querySelector("#simSummary").innerHTML = summary.map(([label, value, cls]) => metric(label, value, cls)).join("");
@@ -1951,6 +2021,7 @@ function renderBenchmark() {
   const highestDelta = [...bench.results].sort((a, b) => b.delta - a.delta)[0];
   const mostImmediate = [...bench.results].sort((a, b) => b.totalImmediateRate - a.totalImmediateRate)[0];
   const mostGrailWinner = [...bench.results].sort((a, b) => b.winnerGrail - a.winnerGrail)[0];
+  const mostHidden = [...bench.results].sort((a, b) => b.unknownHiddenTakeRate - a.unknownHiddenTakeRate)[0];
   const highestScore = [...bench.results].sort((a, b) => b.avgScoreAll - a.avgScoreAll)[0];
   const maxScore = Math.max(...bench.results.map(r => r.maxScore));
   const maxCardRow = [...bench.results].sort((a, b) => b.maxCardPoints - a.maxCardPoints)[0];
@@ -1964,6 +2035,7 @@ function renderBenchmark() {
     metric("Contre-draft", bench.counterDraft ? "Actif" : "Inactif", bench.counterDraft ? "warn" : ""),
     metric("Victoire immediate", `${mostImmediate.label} ${pct(mostImmediate.totalImmediateRate)}`, mostImmediate.totalImmediateRate > 0.12 ? "warn" : ""),
     metric("Gagnant avec Graal", `${mostGrailWinner.label} ${pct(mostGrailWinner.winnerGrail)}`, ""),
+    metric("Carte cachée à l'aveugle", `${mostHidden.label} ${pct(mostHidden.unknownHiddenTakeRate)}`, mostHidden.unknownHiddenTakeRate > 0.30 ? "warn" : "good"),
     metric("PV moyen", `${highestScore.label} ${highestScore.avgScoreAll.toFixed(1)}`, ""),
     metric("PV max", maxScore.toFixed(0), maxScore >= 100 ? "warn" : ""),
     metric("PV max par carte", `${maxCardRow.maxCardName} ${maxCard.toFixed(0)}`, maxCard >= 25 ? "warn" : ""),
@@ -2115,7 +2187,7 @@ function renderSimpleReadout(bench, facts) {
 function renderStrategyTable(bench, baseline) {
   const rows = [...bench.results].sort((a, b) => b.win - a.win);
   document.querySelector("#strategyTable").innerHTML = `
-    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>Graal obtenu</th><th>Trésors moy.</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>PV / carte</th><th>Verdict</th></tr></thead>
+    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>Graal obtenu</th><th>Trésors moy.</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>Cachée inconnue</th><th>PV / carte</th><th>Verdict</th></tr></thead>
     <tbody>
       ${rows.map(row => {
         const verdict = strategyVerdict(row, baseline);
@@ -2132,6 +2204,7 @@ function renderStrategyTable(bench, baseline) {
           <td>${pct(row.totalImmediateRate)}</td>
           <td>${pct(row.totalRoseauxImmediateRate)}</td>
           <td>${pct(row.totalOiseauxImmediateRate)}</td>
+          <td>${pct(row.unknownHiddenTakeRate)}</td>
           <td>${row.avgCardPoints.toFixed(1)}</td>
           <td>${signal(verdict.label, verdict.cls)}</td>
         </tr>`;
@@ -2490,7 +2563,7 @@ function renderRulesEditor() {
 function renderCardsEditor() {
   const table = document.querySelector("#cardsTable");
   table.innerHTML = `
-    <thead><tr><th>Carte</th><th>Qté</th><th>Type</th><th>Base</th><th>Bonus</th><th>Malus</th><th>Seuil</th><th>Plancher</th><th>Effet</th></tr></thead>
+    <thead><tr><th>Carte</th><th>Qté</th><th>Type</th><th>Base</th><th>Bonus</th><th>Malus</th><th>Seuil</th><th>Plancher</th><th>Série</th><th>Effet</th></tr></thead>
     <tbody>
       ${state.cards.map((card, i) => `
         <tr>
@@ -2506,6 +2579,7 @@ function renderCardsEditor() {
           <td><input data-card="${i}" data-field="negValue" type="number" value="${card.negValue ?? ""}"></td>
           <td><input data-card="${i}" data-field="threshold" type="number" min="0" value="${card.threshold ?? ""}"></td>
           <td><input data-card="${i}" data-field="floor" type="number" value="${card.floor ?? ""}"></td>
+          <td>${card.birdScores?.length ? `<input data-card="${i}" data-field="birdScores" type="text" value="${card.birdScores.join("/")}">` : "-"}</td>
           <td>${cardRulesText(card)}</td>
         </tr>
       `).join("")}
@@ -2516,6 +2590,8 @@ function renderCardsEditor() {
       const field = input.dataset.field;
       if (field === "type") {
         card[field] = input.value;
+      } else if (field === "birdScores") {
+        card[field] = parseScoreList(input.value, card[field] || [10, 5, 0]);
       } else if (["negValue", "threshold", "floor"].includes(field) && input.value === "") {
         delete card[field];
       } else {
@@ -2669,7 +2745,7 @@ function renderBoards() {
               <span class="cell-type ${normalizeId(card.type)}">${card.type}</span>
               <span class="cell-score">0 PV</span>
             </div>
-            <div class="cell-effect">Détruite par un Héron.</div>`;
+            <div class="cell-effect">Détruite par un Oiseau.</div>`;
         } else if (card) {
           const summary = cardSummaryInBoard(player, card);
           content = `<div class="cell-name">${card.name}</div>
@@ -2751,7 +2827,7 @@ function bindUI() {
     const blob = new Blob([JSON.stringify(serializeDesign(), null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "etang-du-roi-v8-reglages.json";
+    a.download = "etang-du-roi-v14-reglages.json";
     a.click();
     URL.revokeObjectURL(a.href);
   });
