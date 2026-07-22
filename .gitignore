@@ -1,0 +1,17 @@
+node_modules/
+npm-debug.log*
+
+.codex/
+.agents/
+.codex_tmp/
+
+outputs/
+Partage Etang du Roi/
+
+*.pdf
+*.docx
+*.xlsx
+Test_IA*.png
+
+Thumbs.db
+.DS_Store
