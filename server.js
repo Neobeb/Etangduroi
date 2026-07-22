@@ -4,7 +4,7 @@ const path = require("path");
 const { randomUUID } = require("crypto");
 const gameEngine = require("./web_play/game.js");
 
-const port = Number(process.env.PORT || 10000);
+const port = Number(process.env.PORT || process.argv[2] || 10000);
 const webDir = path.resolve(__dirname, "web_play");
 const simulatorDir = path.resolve(__dirname, "simulateur_v5");
 
@@ -13,6 +13,8 @@ const streams = new Map();
 const scoringFile = path.join(webDir, "scoring_overrides.json");
 
 const BOT_DELAY_MS = 450;
+const HIDDEN_RISK_BASE = Number(process.env.HIDDEN_RISK_BASE || 7);
+const HIDDEN_OPENING_RISK = Number(process.env.HIDDEN_OPENING_RISK ?? 2);
 const BOT_PROFILES = {
   best: { name: "IA" },
 };
@@ -234,7 +236,10 @@ function playBots(room) {
     const player = gameEngine.currentTurnPlayer(room.game);
     if (!player?.isBot) break;
     if (room.game.phase === "hide") {
-      gameEngine.hideCard(room.game, player.id, chooseHideIndex(room.game, player));
+      const hideIndex = chooseHideIndex(room.game, player);
+      gameEngine.hideCard(room.game, player.id, hideIndex, {
+        reservedForHider: isBotReservation(room.game, player, hideIndex),
+      });
     } else if (room.game.phase === "pick") {
       gameEngine.takeCard(room.game, player.id, chooseTakeIndex(room.game, player));
     } else if (room.game.phase === "place") {
@@ -256,6 +261,13 @@ function chooseHideIndex(game, player) {
     index,
     score: hideCardValue(game, player, card, index, pickOrder),
   })));
+}
+
+function isBotReservation(game, player, cardIndex) {
+  const values = game.offer.map(card => cardValue(game, player, card));
+  const selectedValue = values[cardIndex];
+  const bestValue = Math.max(...values);
+  return Number.isFinite(selectedValue) && selectedValue >= bestValue - 2;
 }
 
 function pickOrderAfterHide(game) {
@@ -361,7 +373,8 @@ function hiddenCardValue(game, player, bestVisibleScore) {
   if (!hasVisibleOption) return globalAverage;
 
   const boardRisk = Math.min(2.5, visibleCards(player).length * 0.2);
-  let riskPenalty = 2.5 + boardRisk;
+  const openingRisk = visibleCards(player).length === 0 ? HIDDEN_OPENING_RISK : 0;
+  let riskPenalty = HIDDEN_RISK_BASE + openingRisk + boardRisk;
   if (bestVisibleScore >= globalAverage + 4) riskPenalty += 3;
   else if (bestVisibleScore >= globalAverage) riskPenalty += 1.5;
   else if (bestVisibleScore <= globalAverage - 4) riskPenalty -= 1;
@@ -627,8 +640,22 @@ const server = http.createServer((req, res) => {
   staticFile(req, res, webDir, url.pathname);
 });
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`Etang du Roi web playtest on http://127.0.0.1:${port}`);
-  console.log(`Web app: ${webDir}`);
-  console.log(`Legacy simulator: ${simulatorDir}`);
-});
+function startServer() {
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Etang du Roi web playtest on http://127.0.0.1:${port}`);
+    console.log(`Web app: ${webDir}`);
+    console.log(`Legacy simulator: ${simulatorDir}`);
+  });
+  return server;
+}
+
+if (require.main === module) startServer();
+
+module.exports = {
+  startServer,
+  chooseHideIndex,
+  chooseTakeIndex,
+  choosePlacement,
+  isBotReservation,
+  cardValue,
+};
