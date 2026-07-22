@@ -84,7 +84,7 @@
     return deck;
   }
 
-  function makeGame(players) {
+  function makeGame(players, options = {}) {
     const gamePlayers = players.map((player, index) => ({
       id: player.id,
       name: player.name,
@@ -96,11 +96,15 @@
       grail: false,
       win: null,
     }));
+    const requestedStarter = Number.isInteger(options.startingPlayerIndex)
+      ? options.startingPlayerIndex
+      : Math.floor(Math.random() * gamePlayers.length);
+    const startingPlayer = Math.max(0, Math.min(gamePlayers.length - 1, requestedStarter));
     const game = {
       players: gamePlayers,
       deck: createDeck(),
       round: 0,
-      active: 0,
+      active: startingPlayer,
       offer: [],
       hiddenIndex: -1,
       hiddenBy: null,
@@ -112,7 +116,12 @@
         unknownHiddenTaken: 0,
         botUnknownHiddenOpportunities: 0,
         botUnknownHiddenTaken: 0,
+        botReservations: 0,
+        botReservationsRecovered: 0,
+        humanHiddenCards: 0,
+        humanHiddenRecovered: 0,
       },
+      hiddenReservation: null,
       pickOrder: [],
       pickCursor: 0,
       phase: "draft",
@@ -143,6 +152,7 @@
     game.offer = game.deck.splice(0, count);
     game.hiddenIndex = -1;
     game.hiddenBy = game.players[game.active].id;
+    game.hiddenReservation = null;
     game.pickOrder = [];
     game.pickCursor = 0;
     game.pendingPlacement = null;
@@ -182,11 +192,21 @@
     if (phase === "place" && game.pendingPlacement?.playerId !== playerId) throw new Error("Ce n'est pas a vous de poser.");
   }
 
-  function hideCard(game, playerId, index) {
+  function hideCard(game, playerId, index, options = {}) {
     assertTurn(game, playerId, "hide");
     if (index < 0 || index >= game.offer.length) throw new Error("Carte invalide.");
     game.hiddenIndex = index;
     game.hiddenBy = playerId;
+    const hider = game.players.find(player => player.id === playerId);
+    if (options.reservedForHider && hider?.isBot) {
+      game.hiddenReservation = { playerId, cardUid: game.offer[index].uid, kind: "bot" };
+      game.draftStats.botReservations++;
+    } else if (hider && !hider.isBot) {
+      game.hiddenReservation = { playerId, cardUid: game.offer[index].uid, kind: "human" };
+      game.draftStats.humanHiddenCards++;
+    } else {
+      game.hiddenReservation = null;
+    }
     game.draftStats.hiddenOffered++;
     addLog(game, `${playerName(game, playerId)} met une carte face cachee.`);
     beginPick(game);
@@ -197,6 +217,11 @@
     if (index < 0 || index >= game.offer.length) throw new Error("Carte invalide.");
     const player = currentPicker(game);
     const wasHidden = game.hiddenIndex === index;
+    const card = game.offer[index];
+    const recoveredReservation = wasHidden
+      && game.hiddenReservation?.playerId === playerId
+      && game.hiddenReservation?.cardUid === card.uid;
+    const recoveredReservationKind = recoveredReservation ? game.hiddenReservation.kind : "";
     const unknownHiddenAvailable = game.hiddenIndex >= 0 && game.hiddenBy !== playerId;
     if (unknownHiddenAvailable) {
       game.draftStats.unknownHiddenOpportunities++;
@@ -210,11 +235,11 @@
         if (player.isBot) game.draftStats.botUnknownHiddenTaken++;
       }
     }
-    const card = game.offer[index];
     game.offer.splice(index, 1);
+    if (wasHidden) game.hiddenReservation = null;
     if (game.hiddenIndex === index) game.hiddenIndex = -1;
     if (game.hiddenIndex > index) game.hiddenIndex--;
-    game.pendingPlacement = { playerId, card };
+    game.pendingPlacement = { playerId, card, recoveredReservation, recoveredReservationKind };
     game.phase = "place";
     addLog(game, `${player.name} prend ${wasHidden ? "la carte cachee" : card.name}.`);
   }
@@ -223,9 +248,13 @@
     assertTurn(game, playerId, "place");
     const player = game.players.find(item => item.id === playerId);
     const card = game.pendingPlacement.card;
+    const recoveredReservation = Boolean(game.pendingPlacement.recoveredReservation);
+    const recoveredReservationKind = game.pendingPlacement.recoveredReservationKind;
     const legal = legalPlacements(player);
     if (!legal.some(pos => pos.x === x && pos.y === y)) throw new Error("Placement impossible.");
     player.board.push({ x, y, card });
+    if (recoveredReservation && recoveredReservationKind === "bot" && player.isBot) game.draftStats.botReservationsRecovered++;
+    if (recoveredReservation && recoveredReservationKind === "human" && !player.isBot) game.draftStats.humanHiddenRecovered++;
     game.pendingPlacement = null;
     assignGrail(game.players);
     scoreAll(game.players);
