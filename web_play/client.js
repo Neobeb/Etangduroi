@@ -35,12 +35,6 @@ const app = {
   events: null,
 };
 
-const HERON_ASSETS = {
-  topLeft: "heron_top_left.png",
-  topRight: "heron_top_right.png",
-  bottomLeft: "heron_bottom_left.png",
-};
-
 const params = new URLSearchParams(location.search);
 if (params.get("room")) app.roomCode = params.get("room").toUpperCase();
 els.roomCode.value = app.roomCode;
@@ -610,6 +604,5 @@ function escapeHtml(value) {
 }
 
 function cardAsset(card) {
-  if (card?.id === "heron") return HERON_ASSETS[card.heronTarget] || card.asset;
   return card.asset;
 }

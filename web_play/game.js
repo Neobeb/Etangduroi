@@ -8,13 +8,8 @@
     { id: "topRight", label: "coin haut droit", relX: BOARD_W - 1, relY: 0 },
     { id: "bottomLeft", label: "coin bas gauche", relX: 0, relY: BOARD_H - 1 },
     { id: "bottomRight", label: "coin bas droit", relX: BOARD_W - 1, relY: BOARD_H - 1 },
+    { id: "centerLeft", label: "centre gauche", relX: 1, relY: 1 },
   ];
-
-  const HERON_ASSETS = {
-    topLeft: "heron_top_left.png",
-    topRight: "heron_top_right.png",
-    bottomLeft: "heron_bottom_left.png",
-  };
 
   const CARDS = [
     { id: "roseaux", name: "Roseaux fortifies", qty: 5, type: "Batiment", base: 0, mode: "cornerSet", value: 4, text: "+4 par Roseaux fortifies dans un coin.", asset: "roseaux.png" },
@@ -25,24 +20,28 @@
     { id: "carpographe", name: "Carpographe", qty: 1, type: "Noble", base: 3, mode: "kingdom", pos: ["Carte au tresor"], value: 3, text: "+3 par Carte au tresor.", asset: "carpographe.png" },
     { id: "prince", name: "Prince", qty: 1, type: "Noble", base: 4, mode: "royal", text: "+6 si Princesse, +4 si Roi.", asset: "prince.png" },
     { id: "princesse", name: "Princesse", qty: 1, type: "Noble", base: 4, mode: "royal", text: "+6 si Prince, +4 si Roi.", asset: "princesse.png" },
-    { id: "heron", name: "Heron", qty: 4, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "heron.png" },
+    { id: "cormoran", name: "Cormoran", qty: 1, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", heronTarget: "centerLeft", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "cormoran.png" },
+    { id: "corneille", name: "Corneille", qty: 1, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", heronTarget: "topLeft", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "corneille.png" },
+    { id: "busard", name: "Busard", qty: 1, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", heronTarget: "bottomRight", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "busard.png" },
+    { id: "aigrette", name: "Aigrette", qty: 1, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", heronTarget: "bottomLeft", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "aigrette.png" },
+    { id: "heron", name: "Heron", qty: 1, type: "Oiseau", base: 6, mode: "heron", immediate: "oiseaux", heronTarget: "topRight", text: "6 PV. Si 4 Oiseaux: victoire immediate. Detruit sa case marquee en fin de partie.", asset: "heron.png" },
     { id: "tresor", name: "Carte au tresor", qty: 5, type: "Objet", base: 3, mode: "majority", text: "3 PV. Majorite stricte: Graal +10.", asset: "tresor.png" },
     { id: "paysan", name: "Paysan", qty: 3, type: "Grenouille", base: 0, mode: "kingdom", pos: ["Algues", "Grange"], value: 3, text: "+3 par Algues et Grange.", asset: "paysan.png" },
-    { id: "algues", name: "Algues", qty: 3, type: "Batiment", base: 0, mode: "adjacent", pos: ["Grenouille"], value: 3, text: "+3 par Grenouille adjacente.", asset: "algues.png" },
+    { id: "algues", name: "Algues", qty: 3, type: "Batiment", base: 0, mode: "adjacent", pos: ["Grenouille"], value: 4, text: "+4 par Grenouille adjacente.", asset: "algues.png" },
     { id: "roi", name: "Roi", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Carte au tresor", "Noble"], value: 2, text: "+2 par Carte au tresor et Noble.", asset: "roi.png" },
     { id: "donjon", name: "Donjon", qty: 1, type: "Batiment", base: 0, mode: "adjacent", pos: ["Noble", "Oiseau"], value: 4, text: "+4 par Noble/Oiseau adjacent.", asset: "donjon.png" },
-    { id: "temple", name: "Temple", qty: 1, type: "Batiment", base: 0, mode: "threshold", pos: ["Batiment"], neg: ["Objet"], value: 15, negValue: 1, threshold: 5, text: "+15 si 5+ Batiments, -1 par Objet.", asset: "temple.png" },
-    { id: "moine", name: "Moine", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Carte au tresor"], neg: ["Grenouille"], value: 15, negValue: 1, threshold: 2, text: "+15 si 2+ Cartes au tresor, -1 par Grenouille.", asset: "moine.png" },
-    { id: "revolutionnaire", name: "Revolutionnaire", qty: 1, type: "Grenouille", base: 0, mode: "threshold", pos: ["Grenouille"], neg: ["Noble"], value: 15, negValue: 1, threshold: 5, text: "+15 si 5+ Grenouilles, -1 par Noble.", asset: "revolutionnaire.png" },
+    { id: "temple", name: "Temple", qty: 1, type: "Batiment", base: 0, mode: "threshold", pos: ["Batiment"], neg: [], value: 15, negValue: 0, threshold: 5, text: "+15 si 5+ Batiments.", asset: "temple.png" },
+    { id: "moine", name: "Moine", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Carte au tresor"], neg: [], value: 15, negValue: 0, threshold: 2, text: "+15 si 2+ Cartes au tresor.", asset: "moine.png" },
+    { id: "revolutionnaire", name: "Revolutionnaire", qty: 1, type: "Grenouille", base: 0, mode: "threshold", pos: ["Grenouille"], neg: [], value: 15, negValue: 0, threshold: 5, text: "+15 si 5+ Grenouilles.", asset: "revolutionnaire.png" },
     { id: "capitaine", name: "Capitaine", qty: 1, type: "Noble", base: 4, mode: "adjacent", pos: ["Oiseau"], value: 4, antiHeron: true, text: "+4 par Oiseau adjacent. Annule un Heron adjacent.", asset: "capitaine.png" },
     { id: "grange", name: "Grange", qty: 2, type: "Batiment", base: 0, mode: "kingdom", pos: ["Paysan", "Algues"], value: 3, text: "+3 par Paysan et Algues.", asset: "grange.png" },
     { id: "bouffon", name: "Bouffon", qty: 1, type: "Grenouille", base: 0, mode: "minCount", pos: ["Barde"], value: 25, threshold: 3, text: "+25 si 3+ Bardes.", asset: "bouffon.png" },
     { id: "antiquaire", name: "Antiquaire", qty: 1, type: "Grenouille", base: 0, mode: "adjacent", pos: ["Objet"], value: 5, text: "+5 par Objet adjacent.", asset: "antiquaire.png" },
-    { id: "magicien", name: "Magicienne", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Oiseau"], neg: ["Batiment"], value: 15, negValue: 1, threshold: 2, text: "+15 si 2+ Oiseaux, -1 par Batiment.", asset: "magicien.png" },
+    { id: "magicien", name: "Magicienne", qty: 1, type: "Noble", base: 0, mode: "threshold", pos: ["Oiseau"], neg: [], value: 15, negValue: 0, threshold: 2, text: "+15 si 2+ Oiseaux.", asset: "magicien.png" },
     { id: "architecte", name: "Architecte", qty: 1, type: "Noble", base: 2, mode: "kingdom", pos: ["Batiment"], value: 2, text: "+2 par Batiment.", asset: "architecte.png" },
     { id: "dame_lac", name: "Dame du lac", qty: 1, type: "Noble", base: 2, mode: "adjacent", pos: ["Objet", "Noble"], value: 3, text: "+3 par Objet/Noble adjacent.", asset: "dame_lac.png" },
     { id: "nenuphar", name: "Nenuphar", qty: 1, type: "Batiment", base: 0, mode: "kingdom", pos: ["Grenouille"], value: 3, text: "+3 par Grenouille.", asset: "nenuphar.png" },
-    { id: "grand_duc", name: "Grand Duc", qty: 1, type: "Oiseau", base: 0, mode: "grandDuc", birdScores: [10, 5, 0], immediate: "oiseaux", text: "Score selon Oiseaux: 1=10, 2=5, 3+=0. Si 4 Oiseaux: victoire immediate.", asset: "grand_duc.png" },
+    { id: "gros_oeuf", name: "Gros Oeuf", qty: 1, type: "Objet", base: 0, mode: "grandDuc", birdScores: [10, 5, 0], text: "Score selon Oiseaux: 1=10, 2=5, 3+=0.", asset: "gros_oeuf.png" },
     { id: "forum", name: "Forum", qty: 1, type: "Batiment", base: 4, mode: "position", pos: ["Centre"], value: 5, text: "+5 si case centrale.", asset: "forum.png" },
     { id: "pont_levis", name: "Pont-levis", qty: 1, type: "Batiment", base: 0, mode: "adjacent", pos: ["Batiment"], value: 4, text: "+4 par Batiment adjacent.", asset: "pont_levis.png" },
   ];
@@ -54,7 +53,6 @@
   }
 
   function cardAsset(card, def) {
-    if (def.id === "heron") return HERON_ASSETS[card.heronTarget] || def.asset;
     return def.asset;
   }
 
@@ -71,7 +69,7 @@
     for (const card of CARDS) {
       for (let copyIndex = 0; copyIndex < card.qty; copyIndex++) {
         const copy = { ...card, copyIndex, uid: `${card.id}-${copyIndex}-${Math.random().toString(36).slice(2)}` };
-        if (card.id === "heron") copy.heronTarget = HERON_TARGETS[copyIndex]?.id || HERON_TARGETS[copyIndex % HERON_TARGETS.length].id;
+        if (card.mode === "heron") copy.heronTarget = card.heronTarget || HERON_TARGETS[copyIndex % HERON_TARGETS.length].id;
         deck.push(copy);
       }
     }
@@ -466,7 +464,7 @@
       if (!bounds) continue;
       const targets = new Map();
       for (const cell of boardEntries(player)) {
-        if (cardDef(cell.card).id !== "heron" || isHeronBlocked(player, cell)) continue;
+        if (cardDef(cell.card).mode !== "heron" || isHeronBlocked(player, cell)) continue;
         const target = heronTargetCoord(bounds, cell.card.heronTarget);
         if (!target) continue;
         const targetEntry = getBoardEntry(player, target.x, target.y);
