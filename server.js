@@ -354,21 +354,18 @@ function hiddenCardValue(game, player, bestVisibleScore) {
   if (game.hiddenIndex >= 0 && game.offer[game.hiddenIndex]) unknown.push(game.offer[game.hiddenIndex]);
   const values = unknown
     .map(card => cardValue(game, player, card))
-    .filter(Number.isFinite)
-    .sort((a, b) => b - a);
+    .filter(Number.isFinite);
   if (!values.length) return 0;
-  const bestSlice = values.slice(0, Math.max(1, Math.ceil(values.length * 0.12)));
-  const bestAverage = bestSlice.reduce((sum, value) => sum + value, 0) / bestSlice.length;
   const globalAverage = values.reduce((sum, value) => sum + value, 0) / values.length;
   const hasVisibleOption = Number.isFinite(bestVisibleScore);
-  const visibleIsWeak = hasVisibleOption && bestVisibleScore <= globalAverage + 1;
-  const upsideWeight = visibleIsWeak ? 0.32 : 0.18;
-  let riskPenalty = 4.5 + Math.min(3.5, visibleCards(player).length * 0.35);
-  if (!hasVisibleOption) riskPenalty -= 2.5;
-  else if (bestVisibleScore >= bestAverage - 1) riskPenalty += 3;
-  else if (bestVisibleScore >= globalAverage + 5) riskPenalty += 1.5;
-  else if (visibleIsWeak) riskPenalty -= 1;
-  return bestAverage * upsideWeight + globalAverage * (1 - upsideWeight) - riskPenalty;
+  if (!hasVisibleOption) return globalAverage;
+
+  const boardRisk = Math.min(2.5, visibleCards(player).length * 0.2);
+  let riskPenalty = 2.5 + boardRisk;
+  if (bestVisibleScore >= globalAverage + 4) riskPenalty += 3;
+  else if (bestVisibleScore >= globalAverage) riskPenalty += 1.5;
+  else if (bestVisibleScore <= globalAverage - 4) riskPenalty -= 1;
+  return globalAverage - Math.max(1, riskPenalty);
 }
 
 function visibleCards(player) {
