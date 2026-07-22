@@ -104,6 +104,15 @@
       offer: [],
       hiddenIndex: -1,
       hiddenBy: null,
+      draftStats: {
+        hiddenOffered: 0,
+        hiddenTaken: 0,
+        hiddenTakenByHider: 0,
+        unknownHiddenOpportunities: 0,
+        unknownHiddenTaken: 0,
+        botUnknownHiddenOpportunities: 0,
+        botUnknownHiddenTaken: 0,
+      },
       pickOrder: [],
       pickCursor: 0,
       phase: "draft",
@@ -178,6 +187,7 @@
     if (index < 0 || index >= game.offer.length) throw new Error("Carte invalide.");
     game.hiddenIndex = index;
     game.hiddenBy = playerId;
+    game.draftStats.hiddenOffered++;
     addLog(game, `${playerName(game, playerId)} met une carte face cachee.`);
     beginPick(game);
   }
@@ -187,6 +197,19 @@
     if (index < 0 || index >= game.offer.length) throw new Error("Carte invalide.");
     const player = currentPicker(game);
     const wasHidden = game.hiddenIndex === index;
+    const unknownHiddenAvailable = game.hiddenIndex >= 0 && game.hiddenBy !== playerId;
+    if (unknownHiddenAvailable) {
+      game.draftStats.unknownHiddenOpportunities++;
+      if (player.isBot) game.draftStats.botUnknownHiddenOpportunities++;
+    }
+    if (wasHidden) {
+      game.draftStats.hiddenTaken++;
+      if (game.hiddenBy === playerId) game.draftStats.hiddenTakenByHider++;
+      else {
+        game.draftStats.unknownHiddenTaken++;
+        if (player.isBot) game.draftStats.botUnknownHiddenTaken++;
+      }
+    }
     const card = game.offer[index];
     game.offer.splice(index, 1);
     if (game.hiddenIndex === index) game.hiddenIndex = -1;
@@ -387,7 +410,7 @@
       case "grandDuc": {
         const birds = countFamily(player, "Oiseau");
         const birdScores = def.birdScores || [10, 5, 0];
-        score += birds <= 1 ? birdScores[0] || 0 : birds === 2 ? birdScores[1] || 0 : birdScores[2] || 0;
+        if (birds > 0) score += birds === 1 ? birdScores[0] || 0 : birds === 2 ? birdScores[1] || 0 : birdScores[2] || 0;
         break;
       }
       case "heron":
@@ -526,6 +549,7 @@
         winnerId: game.winnerId,
         winReason: game.winReason,
         deckCount: game.deck.length,
+        draftStats: { ...game.draftStats },
         hiddenBy: game.hiddenBy,
         currentPickerId: currentPicker(game)?.id || null,
         pendingPlacement: game.pendingPlacement ? {

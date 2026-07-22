@@ -660,6 +660,18 @@ select {
   background: #fff3b8;
 }
 
+.draft-summary {
+  padding: 12px 14px;
+  border-top: 2px solid var(--line);
+  background: #f7f4ea;
+  font-weight: 800;
+}
+
+.draft-summary strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
 @media (max-width: 900px) {
   .join-shell,
   .table-grid {

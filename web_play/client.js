@@ -534,6 +534,16 @@ function boardHtml(player, isMine, isFinal) {
 }
 
 function finalScoreSummary(game) {
+  const draftStats = game.draftStats || {};
+  const botHiddenOpportunities = Number(draftStats.botUnknownHiddenOpportunities || 0);
+  const botHiddenTaken = Number(draftStats.botUnknownHiddenTaken || 0);
+  const botHiddenRate = botHiddenOpportunities ? botHiddenTaken / botHiddenOpportunities : 0;
+  const hiddenSummary = botHiddenOpportunities ? `
+    <div class="draft-summary">
+      <strong>Choix caches des IA</strong>
+      ${botHiddenTaken}/${botHiddenOpportunities} cartes prises sans en connaitre l'identite (${(botHiddenRate * 100).toFixed(1)}%).
+    </div>
+  ` : "";
   const rows = [...game.players]
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((player, index) => `
@@ -560,6 +570,7 @@ function finalScoreSummary(game) {
         </thead>
         <tbody>${rows}</tbody>
       </table>
+      ${hiddenSummary}
     </section>
   `;
 }
