@@ -12,6 +12,9 @@ const BASE_RULES = {
   royalKingBonus: 4,
 };
 
+const HIDDEN_RISK_BASE = 7;
+const HIDDEN_OPENING_RISK = 2;
+
 const HERON_TARGETS = [
   { id: "topLeft", label: "coin haut gauche", relX: 0, relY: 0 },
   { id: "topRight", label: "coin haut droit", relX: BOARD_W - 1, relY: 0 },
@@ -377,7 +380,11 @@ function hideOfferCard(offerIdx) {
   const g = state.game;
   if (!g || g.phase !== "hide" || offerIdx < 0 || offerIdx >= g.offer.length) return;
   g.hiddenIndex = offerIdx;
-  recordHiddenOffer(g);
+  const hider = g.players[g.active];
+  const reservation = !hider.human && hider.agent !== "random"
+    ? hiddenReservationDecision(hider.index, g.offer, offerIdx, card => agentKnownCardScore(hider, card, hider.agent))
+    : null;
+  recordHiddenOffer(g, reservation);
   log(`${g.players[g.active].name} met une carte face cachee.`);
   beginDraftPick();
 }
@@ -431,6 +438,10 @@ function createDraftStats() {
     hiddenTakenByHider: 0,
     unknownHiddenOpportunities: 0,
     unknownHiddenTaken: 0,
+    reservations: 0,
+    reservationsRecovered: 0,
+    hiddenOfferedByPlayer: {},
+    hiddenRecoveredByPlayer: {},
   };
 }
 
@@ -439,8 +450,22 @@ function draftStats(game) {
   return game.draftStats;
 }
 
-function recordHiddenOffer(game) {
-  draftStats(game).hiddenOffered++;
+function hiddenReservationDecision(playerIndex, offerCards, hiddenIndex, scoreCard) {
+  if (hiddenIndex < 0 || hiddenIndex >= offerCards.length) return null;
+  const values = offerCards.map(scoreCard);
+  const selectedValue = values[hiddenIndex];
+  const bestValue = Math.max(...values);
+  if (!Number.isFinite(selectedValue) || selectedValue < bestValue - 2) return null;
+  return { playerIndex, cardUid: offerCards[hiddenIndex].uid };
+}
+
+function recordHiddenOffer(game, reservation = null) {
+  const stats = draftStats(game);
+  stats.hiddenOffered++;
+  const hiderKey = String(game.hiddenBy);
+  stats.hiddenOfferedByPlayer[hiderKey] = Number(stats.hiddenOfferedByPlayer[hiderKey] || 0) + 1;
+  game.hiddenReservation = reservation;
+  if (reservation) stats.reservations++;
 }
 
 function recordOfferTake(game, playerIndex, offerIndex) {
@@ -450,8 +475,17 @@ function recordOfferTake(game, playerIndex, offerIndex) {
   if (unknownHiddenAvailable) stats.unknownHiddenOpportunities++;
   if (!wasHidden) return;
   stats.hiddenTaken++;
-  if (game.hiddenBy === playerIndex) stats.hiddenTakenByHider++;
+  if (game.hiddenBy === playerIndex) {
+    stats.hiddenTakenByHider++;
+    const hiderKey = String(playerIndex);
+    stats.hiddenRecoveredByPlayer[hiderKey] = Number(stats.hiddenRecoveredByPlayer[hiderKey] || 0) + 1;
+  }
   else stats.unknownHiddenTaken++;
+  if (game.hiddenReservation?.playerIndex === playerIndex
+    && game.hiddenReservation?.cardUid === game.offer[offerIndex]?.uid) {
+    stats.reservationsRecovered++;
+  }
+  game.hiddenReservation = null;
 }
 
 function takeOffer(offerIdx) {
@@ -894,7 +928,8 @@ function estimateHiddenScore(player, agent, visibleItems) {
     total += cardPotential(card) * qty;
     weight += qty;
   }
-  const uncertaintyPenalty = agent === "random" ? 0 : 3.5;
+  const openingPenalty = boardCards(player).length === 0 ? HIDDEN_OPENING_RISK : 0;
+  const uncertaintyPenalty = agent === "random" ? 0 : HIDDEN_RISK_BASE + openingPenalty;
   return weight ? (total / weight) - uncertaintyPenalty : 0;
 }
 
@@ -1322,7 +1357,10 @@ function simulateProfileGame(playersCount, profile, prep) {
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = chooseProfileHiddenIndex(players[g.active], g.offer, strategies[g.active], players, g.active, profile);
-    recordHiddenOffer(g);
+    const reservation = strategies[g.active] !== "random"
+      ? hiddenReservationDecision(g.active, g.offer, g.hiddenIndex, card => profileOfferScore(players[g.active], { card, idx: 0, hidden: false }, strategies[g.active], [], profile))
+      : null;
+    recordHiddenOffer(g, reservation);
     if (playersCount === 2) {
       g.pickOrder = [1 - g.active, g.active];
     } else {
@@ -1373,7 +1411,10 @@ function simulateGame(playersCount, agent, prep) {
     g.offer = g.deck.splice(0, n);
     g.hiddenBy = g.active;
     g.hiddenIndex = chooseHiddenIndex(players[g.active], g.offer, agent);
-    recordHiddenOffer(g);
+    const reservation = agent !== "random"
+      ? hiddenReservationDecision(g.active, g.offer, g.hiddenIndex, card => agentKnownCardScore(players[g.active], card, agent))
+      : null;
+    recordHiddenOffer(g, reservation);
     if (playersCount === 2) g.pickOrder = [1 - g.active, g.active];
     else {
       g.pickOrder = [];
@@ -1447,7 +1488,13 @@ function simulateBenchmarkGame(playersCount, strategy, prep, counterDraft) {
     g.hiddenIndex = counterDraft && g.active !== 0
       ? chooseCounterDraftHiddenIndex(players[g.active], g.offer, players[0], strategy)
       : chooseStrategyHiddenIndex(players[g.active], g.offer, strategies[g.active]);
-    recordHiddenOffer(g);
+    const reservation = hiddenReservationDecision(
+      g.active,
+      g.offer,
+      g.hiddenIndex,
+      card => strategyCardScore(players[g.active], { card, idx: 0, hidden: false }, strategies[g.active], []),
+    );
+    recordHiddenOffer(g, reservation);
     if (playersCount === 2) {
       g.pickOrder = [1 - g.active, g.active];
     } else {
@@ -1633,6 +1680,10 @@ function summarizeBenchmarkStrategy(strategy, playersCount, games, prep, counter
   const strategyGrailWins = rows.reduce((sum, r) => sum + r.p1GrailWin, 0);
   const unknownHiddenOpportunities = rows.reduce((sum, r) => sum + Number(r.draftStats?.unknownHiddenOpportunities || 0), 0);
   const unknownHiddenTaken = rows.reduce((sum, r) => sum + Number(r.draftStats?.unknownHiddenTaken || 0), 0);
+  const reservations = rows.reduce((sum, r) => sum + Number(r.draftStats?.reservations || 0), 0);
+  const reservationsRecovered = rows.reduce((sum, r) => sum + Number(r.draftStats?.reservationsRecovered || 0), 0);
+  const hiddenOffered = rows.reduce((sum, r) => sum + Number(r.draftStats?.hiddenOffered || 0), 0);
+  const hiddenReturned = rows.reduce((sum, r) => sum + Number(r.draftStats?.hiddenTakenByHider || 0), 0);
 
   return {
     id: strategy.id,
@@ -1661,6 +1712,12 @@ function summarizeBenchmarkStrategy(strategy, playersCount, games, prep, counter
     unknownHiddenOpportunities,
     unknownHiddenTaken,
     unknownHiddenTakeRate: unknownHiddenTaken / Math.max(1, unknownHiddenOpportunities),
+    reservations,
+    reservationsRecovered,
+    reservationRecoveryRate: reservationsRecovered / Math.max(1, reservations),
+    hiddenOffered,
+    hiddenReturned,
+    hiddenReturnRate: hiddenReturned / Math.max(1, hiddenOffered),
     winnerGrail: avg(rows.map(r => r.winnerGrail)),
     strategyGrailWinRate: strategyGrailWins / Math.max(1, strategyWins),
     p1Grail: avg(rows.map(r => r.p1Grail)),
@@ -1868,6 +1925,12 @@ function runSimpleStats() {
       const grailWins = results.reduce((sum, row) => sum + row.winnerGrail, 0);
       const unknownHiddenOpportunities = results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenOpportunities || 0), 0);
       const unknownHiddenTaken = results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenTaken || 0), 0);
+      const reservations = results.reduce((sum, row) => sum + Number(row.draftStats?.reservations || 0), 0);
+      const reservationsRecovered = results.reduce((sum, row) => sum + Number(row.draftStats?.reservationsRecovered || 0), 0);
+      const hiddenOffered = results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenOffered || 0), 0);
+      const hiddenReturned = results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenTakenByHider || 0), 0);
+      const referenceHiddenOffered = results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenOfferedByPlayer?.["0"] || 0), 0);
+      const referenceHiddenReturned = results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenRecoveredByPlayer?.["0"] || 0), 0);
       const tightGames = scoreRanges.filter(range => range <= 10).length;
       const maxSeen = Math.max(...winnerScores);
       const avgWinner = avg(winnerScores);
@@ -1887,6 +1950,9 @@ function runSimpleStats() {
       const tightRate = tightGames / games;
       const grailRate = grailWins / games;
       const unknownHiddenTakeRate = unknownHiddenTaken / Math.max(1, unknownHiddenOpportunities);
+      const reservationRecoveryRate = reservationsRecovered / Math.max(1, reservations);
+      const hiddenReturnRate = hiddenReturned / Math.max(1, hiddenOffered);
+      const referenceHiddenReturnRate = referenceHiddenReturned / Math.max(1, referenceHiddenOffered);
 
       const stats = [
         ["Victoire Oiseaux", pct(immediateRate), levelForImmediate(immediateRate)],
@@ -1901,6 +1967,8 @@ function runSimpleStats() {
         ["Score max vu", maxSeen.toFixed(0), levelForScore(maxSeen, avgWinner)],
         ["Graal chez gagnant", pct(grailRate), grailRate > 0.55 ? "warn" : ""],
         ["Cachée prise à l'aveugle", pct(unknownHiddenTakeRate), unknownHiddenTakeRate > 0.30 ? "warn" : "good"],
+        ["Réservation récupérée", pct(reservationRecoveryRate), ""],
+        ["Cachée revenue au cacheur", pct(hiddenReturnRate), ""],
         ["Parties serrées", pct(tightRate), tightRate < 0.25 ? "warn" : "good"],
       ];
       document.querySelector("#simpleStats").innerHTML = stats.map(([label, value, cls]) => metric(label, value, cls)).join("");
@@ -1927,6 +1995,14 @@ function runSimpleStats() {
           text: `Les IA prennent une carte cachée qu'elles n'ont pas préparée dans ${pct(unknownHiddenTakeRate)} des occasions (${unknownHiddenTaken}/${unknownHiddenOpportunities}).`,
         },
         {
+          level: "good",
+          text: `Une carte cachée utile au cacheur lui revient dans ${pct(reservationRecoveryRate)} des cas (${reservationsRecovered}/${reservations}).`,
+        },
+        {
+          level: "good",
+          text: `Toutes cartes confondues, la carte cachée revient au cacheur dans ${pct(hiddenReturnRate)} des cas. Pour le joueur de référence face aux IA: ${pct(referenceHiddenReturnRate)} (${referenceHiddenReturned}/${referenceHiddenOffered}).`,
+        },
+        {
           level: tightRate < 0.25 ? "warn" : "good",
           text: `${pct(tightRate)} des parties finissent avec 10 PV ou moins d'écart entre premier et dernier.`,
         },
@@ -1946,6 +2022,9 @@ function runSimpleStats() {
           <tr><td>Écart de score</td><td>${avg(scoreRanges).toFixed(1)} PV en moyenne</td><td>${pct(tightRate)} parties serrées</td></tr>
           <tr><td>Graal</td><td>${grailWins} gagnants avec Graal</td><td>${pct(grailRate)}</td></tr>
           <tr><td>Choix caché à l'aveugle</td><td>${unknownHiddenTaken} prises sur ${unknownHiddenOpportunities} occasions</td><td>${pct(unknownHiddenTakeRate)}</td></tr>
+          <tr><td>Carte réservée récupérée</td><td>${reservationsRecovered} récupérations sur ${reservations} réservations</td><td>${pct(reservationRecoveryRate)}</td></tr>
+          <tr><td>Carte cachée revenue au cacheur</td><td>${hiddenReturned} retours sur ${hiddenOffered} cartes cachées</td><td>${pct(hiddenReturnRate)}</td></tr>
+          <tr><td>Retour au joueur de référence</td><td>${referenceHiddenReturned} retours sur ${referenceHiddenOffered} cartes cachées</td><td>${pct(referenceHiddenReturnRate)}</td></tr>
         </tbody>`;
     } finally {
       button.disabled = false;
@@ -1963,6 +2042,10 @@ function renderSimulation() {
   const winnerGrail = sim.results.reduce((s, r) => s + r.winnerGrail, 0);
   const hiddenOpportunities = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenOpportunities || 0), 0);
   const hiddenTaken = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.unknownHiddenTaken || 0), 0);
+  const reservations = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.reservations || 0), 0);
+  const reservationsRecovered = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.reservationsRecovered || 0), 0);
+  const hiddenOffered = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenOffered || 0), 0);
+  const hiddenReturned = sim.results.reduce((sum, row) => sum + Number(row.draftStats?.hiddenTakenByHider || 0), 0);
   const scores = sim.results.flatMap(r => r.scores);
   const summary = [
     ["Parties", sim.games, "good"],
@@ -1972,6 +2055,8 @@ function renderSimulation() {
     ["Oiseaux", pct(oiseaux / sim.games), oiseaux ? "warn" : ""],
     ["Gagnant Graal", pct(winnerGrail / sim.games), ""],
     ["Cachée à l'aveugle", pct(hiddenTaken / Math.max(1, hiddenOpportunities)), hiddenTaken / Math.max(1, hiddenOpportunities) > 0.30 ? "warn" : "good"],
+    ["Réservation récupérée", pct(reservationsRecovered / Math.max(1, reservations)), ""],
+    ["Cachée revenue", pct(hiddenReturned / Math.max(1, hiddenOffered)), ""],
     ["Score max moyen", avg(sim.results.map(r => r.maxScore)).toFixed(1), ""],
   ];
   document.querySelector("#simSummary").innerHTML = summary.map(([label, value, cls]) => metric(label, value, cls)).join("");
@@ -2022,6 +2107,12 @@ function renderBenchmark() {
   const mostImmediate = [...bench.results].sort((a, b) => b.totalImmediateRate - a.totalImmediateRate)[0];
   const mostGrailWinner = [...bench.results].sort((a, b) => b.winnerGrail - a.winnerGrail)[0];
   const mostHidden = [...bench.results].sort((a, b) => b.unknownHiddenTakeRate - a.unknownHiddenTakeRate)[0];
+  const benchmarkReservations = bench.results.reduce((sum, row) => sum + row.reservations, 0);
+  const benchmarkReservationsRecovered = bench.results.reduce((sum, row) => sum + row.reservationsRecovered, 0);
+  const benchmarkReservationRate = benchmarkReservationsRecovered / Math.max(1, benchmarkReservations);
+  const benchmarkHiddenOffered = bench.results.reduce((sum, row) => sum + row.hiddenOffered, 0);
+  const benchmarkHiddenReturned = bench.results.reduce((sum, row) => sum + row.hiddenReturned, 0);
+  const benchmarkHiddenReturnRate = benchmarkHiddenReturned / Math.max(1, benchmarkHiddenOffered);
   const highestScore = [...bench.results].sort((a, b) => b.avgScoreAll - a.avgScoreAll)[0];
   const maxScore = Math.max(...bench.results.map(r => r.maxScore));
   const maxCardRow = [...bench.results].sort((a, b) => b.maxCardPoints - a.maxCardPoints)[0];
@@ -2036,6 +2127,8 @@ function renderBenchmark() {
     metric("Victoire immediate", `${mostImmediate.label} ${pct(mostImmediate.totalImmediateRate)}`, mostImmediate.totalImmediateRate > 0.12 ? "warn" : ""),
     metric("Gagnant avec Graal", `${mostGrailWinner.label} ${pct(mostGrailWinner.winnerGrail)}`, ""),
     metric("Carte cachée à l'aveugle", `${mostHidden.label} ${pct(mostHidden.unknownHiddenTakeRate)}`, mostHidden.unknownHiddenTakeRate > 0.30 ? "warn" : "good"),
+    metric("Réservation récupérée", pct(benchmarkReservationRate), ""),
+    metric("Cachée revenue au cacheur", pct(benchmarkHiddenReturnRate), ""),
     metric("PV moyen", `${highestScore.label} ${highestScore.avgScoreAll.toFixed(1)}`, ""),
     metric("PV max", maxScore.toFixed(0), maxScore >= 100 ? "warn" : ""),
     metric("PV max par carte", `${maxCardRow.maxCardName} ${maxCard.toFixed(0)}`, maxCard >= 25 ? "warn" : ""),
@@ -2187,7 +2280,7 @@ function renderSimpleReadout(bench, facts) {
 function renderStrategyTable(bench, baseline) {
   const rows = [...bench.results].sort((a, b) => b.win - a.win);
   document.querySelector("#strategyTable").innerHTML = `
-    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>Graal obtenu</th><th>Trésors moy.</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>Cachée inconnue</th><th>PV / carte</th><th>Verdict</th></tr></thead>
+    <thead><tr><th>Strategie</th><th>Gagne au score</th><th>Graal si gagne</th><th>Graal obtenu</th><th>Trésors moy.</th><th>PV moyen</th><th>Ecart adv.</th><th>PV max moyen</th><th>PV max</th><th>Immediate</th><th>Roseaux</th><th>Oiseaux</th><th>Cachée inconnue</th><th>Réservation récupérée</th><th>Retour cacheur</th><th>PV / carte</th><th>Verdict</th></tr></thead>
     <tbody>
       ${rows.map(row => {
         const verdict = strategyVerdict(row, baseline);
@@ -2205,6 +2298,8 @@ function renderStrategyTable(bench, baseline) {
           <td>${pct(row.totalRoseauxImmediateRate)}</td>
           <td>${pct(row.totalOiseauxImmediateRate)}</td>
           <td>${pct(row.unknownHiddenTakeRate)}</td>
+          <td>${pct(row.reservationRecoveryRate)}</td>
+          <td>${pct(row.hiddenReturnRate)}</td>
           <td>${row.avgCardPoints.toFixed(1)}</td>
           <td>${signal(verdict.label, verdict.cls)}</td>
         </tr>`;
